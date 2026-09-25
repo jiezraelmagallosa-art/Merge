@@ -8,6 +8,45 @@
 // Global API Base Configuration
 const API_BASE = '../backend/';
 
+// Student Photo Verification Fallback (Institutional SBC Vector Avatar)
+const DEFAULT_STUDENT_AVATAR = 'assets/images/student_placeholder.svg';
+const DEFAULT_STUDENT_AVATAR_FALLBACK = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MDAgMzAwIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic2JjQmdHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzA3MWIzMCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiMxNDJjNGMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InNiY0F2YXRhckdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzk0YTNiOCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiM2NDc0OGIiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSJ1cmwoI3NiY0JnR3JhZCkiLz4KCiAgPCEtLSBTdWJ0bGUgaW5zdGl0dXRpb25hbCBncmlkIHBhdHRlcm4gLS0+CiAgPGNpcmNsZSBjeD0iMjAwIiBjeT0iMTEwIiByPSI2OCIgZmlsbD0iIzAwMmQ1NiIgZmlsbC1vcGFjaXR5PSIwLjQiIHN0cm9rZT0iIzM4YmRmOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1kYXNoYXJyYXk9IjQgNCIgc3Ryb2tlLW9wYWNpdHk9IjAuNSIvPgoKICA8IS0tIFN0dWRlbnQgU2lsaG91ZXR0ZSAtLT4KICA8IS0tIEhlYWQgLS0+CiAgPGNpcmNsZSBjeD0iMjAwIiBjeT0iOTQiIHI9IjMwIiBmaWxsPSJ1cmwoI3NiY0F2YXRhckdyYWQpIi8+CiAgPCEtLSBUb3JzbyAmIENvbGxlZ2UgVW5pZm9ybSBQb2xvIC0tPgogIDxwYXRoIGQ9Ik0xNDQgMTYyIEMxNDQgMTM0LCAxNzIgMTMwLCAyMDAgMTMwIEMyMjggMTMwLCAyNTYgMTM0LCAyNTYgMTYyIEMyNTYgMTcwLCAyNTIgMTc0LCAyNDQgMTc0IEwxNTYgMTc0IEMxNDggMTc0LCAxNDQgMTcwLCAxNDQgMTYyIFoiIGZpbGw9InVybCgjc2JjQXZhdGFyR3JhZCkiLz4KICAKICA8IS0tIENvbGxlZ2UgSUQgTGFueWFyZCAmIEJhZGdlIC0tPgogIDxwYXRoIGQ9Ik0xOTAgMTMwIEwxOTUgMTUwIEwyMDUgMTUwIEwyMTAgMTMwIiBzdHJva2U9IiNmNTllMGIiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIvPgogIDxyZWN0IHg9IjE5MyIgeT0iMTQ4IiB3aWR0aD0iMTQiIGhlaWdodD0iMjAiIHJ4PSIyIiBmaWxsPSIjMDI4NGM3Ii8+CiAgPHJlY3QgeD0iMTk1IiB5PSIxNTAiIHdpZHRoPSIxMCIgaGVpZ2h0PSI1IiByeD0iMSIgZmlsbD0iI2ZmZmZmZiIgZmlsbC1vcGFjaXR5PSIwLjkiLz4KCiAgPCEtLSBWZXJpZmljYXRpb24gQ2FtZXJhIEljb24gQmFkZ2UgLS0+CiAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjMwLCA3MikiPgogICAgPGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTQiIGZpbGw9IiMwMjg0YzciIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8cGF0aCBkPSJNNyAxNSBMMTcgMTUgQzE3LjYgMTUgMTggMTQuNiAxOCAxNCBMMTggMTAgQzE4IDkuNCAxNy42IDkgMTcgOSBMMTUgOSBMMTQgNyBMMTAgNyBMOSA5IEw3IDkgQzYuNCA5IDYgOS40IDYgMTAgTDYgMTQgQzYgMTQuNiA2LjQgMTUgNyAxNSBaIiBmaWxsPSIjZmZmZmZmIi8+CiAgICA8Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIyLjUiIGZpbGw9IiMwMjg0YzciLz4KICA8L2c+CgogIDwhLS0gQ2xlYW4gSW5zdGl0dXRpb25hbCBMYWJlbHMgLS0+CiAgPHRleHQgeD0iMjAwIiB5PSIyMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmOGZhZmMiIGZvbnQtZmFtaWx5PSItYXBwbGUtc3lzdGVtLCBCbGlua01hY1N5c3RlbUZvbnQsICdTZWdvZSBVSScsIFJvYm90bywgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCIgbGV0dGVyLXNwYWNpbmc9IjEiPlNPVVRIRVJOIEJBUFRJU1QgQ09MTEVHRTwvdGV4dD4KICA8dGV4dCB4PSIyMDAiIHk9IjIzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzM4YmRmOCIgZm9udC1mYW1pbHk9Ii1hcHBsZS1zeXN0ZW0sIEJsaW5rTWFjU3lzdGVtRm9udCwgJ1NlZ29lIFVJJywgUm9ib3RvLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIiBsZXR0ZXItc3BhY2luZz0iMC41Ij5TVFVERU5UIFBIT1RPIFZFUklGSUNBVElPTjwvdGV4dD4KICA8dGV4dCB4PSIyMDAiIHk9IjI1NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0YTNiOCIgZm9udC1mYW1pbHk9Ii1hcHBsZS1zeXN0ZW0sIEJsaW5rTWFjU3lzdGVtRm9udCwgJ1NlZ29lIFVJJywgUm9ib3RvLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwLjUiPkxpdmUgQ2FwdHVyZSBJbWFnZSBQZW5kaW5nIG9yIFB1cmdlZDwvdGV4dD4KPC9zdmc+';
+
+function resolvePhotoUrl(fullUrl, imagePath) {
+  if (imagePath && typeof imagePath === 'string' && imagePath.trim().length > 0) {
+    const clean = imagePath.trim().replace(/^(\.\.\/|\/)+/, '');
+    return '../' + clean;
+  }
+  if (fullUrl && typeof fullUrl === 'string' && fullUrl.trim().length > 0) {
+    if (window.location.protocol === 'https:' && fullUrl.startsWith('http://')) {
+      return fullUrl.replace('http://', 'https://');
+    }
+    return fullUrl;
+  }
+  return DEFAULT_STUDENT_AVATAR;
+}
+
+function handlePhotoError(img, altFallbackUrl) {
+  if (!img) return;
+  if (img.dataset.hasFailed) return;
+
+  // If we haven't tried the alternative URL (e.g. absolute URL if relative failed)
+  if (altFallbackUrl && img.src !== altFallbackUrl && !img.dataset.triedAlt) {
+    img.dataset.triedAlt = '1';
+    img.src = altFallbackUrl;
+    return;
+  }
+
+  img.dataset.hasFailed = '1';
+  img.onerror = function() {
+    this.onerror = null;
+    this.src = DEFAULT_STUDENT_AVATAR_FALLBACK;
+  };
+  img.src = DEFAULT_STUDENT_AVATAR;
+  img.style.objectFit = 'contain';
+  img.style.backgroundColor = '#071b30';
+}
+
 
 // Cached Application State Variables
 let currentUser = null;
@@ -346,10 +385,13 @@ function renderLiveCaptures(captures) {
     return;
   }
 
-  container.innerHTML = captures.map((c, idx) => `
+  container.innerHTML = captures.map((c, idx) => {
+    const photoSrc = resolvePhotoUrl(c.full_url, c.image_path);
+    const altFallback = (c.full_url && c.full_url !== photoSrc) ? c.full_url : '';
+    return `
     <div class="capture-card" onclick="openLiveCaptureLightbox(${idx})" title="Click to view whole picture (Full Size)">
       <div class="capture-img-box">
-        <img src="${c.full_url}" alt="${escapeHtml(c.full_name)}" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80';">
+        <img src="${photoSrc}" alt="${escapeHtml(c.full_name)}" onerror="handlePhotoError(this, '${escapeHtml(altFallback)}');">
         <span class="capture-badge">${c.shift_type}</span>
         <div class="capture-zoom-overlay">🔍 View Full</div>
       </div>
@@ -359,7 +401,8 @@ function renderLiveCaptures(captures) {
         <p style="margin-top: 0.2rem; font-weight: 600; color: var(--navy-primary);">${c.captured_time} (${c.date})</p>
       </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
 
 
@@ -2431,7 +2474,7 @@ function openPhotoModal(photos, attendanceId = null) {
             </button>
           </div>
           <div class="photo-preview-wrapper" onclick="openModalPhotoByIndex(${idx})" title="Click to view whole picture (Full Size)">
-            <img src="${p.full_url}" class="verification-preview-img" alt="Shift: ${escapeHtml(p.shift_type)}" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80';">
+            <img src="${resolvePhotoUrl(p.full_url, p.image_path)}" class="verification-preview-img" alt="Shift: ${escapeHtml(p.shift_type)}" onerror="handlePhotoError(this, '${escapeHtml(p.full_url && p.full_url !== resolvePhotoUrl(p.full_url, p.image_path) ? p.full_url : '')}');">
             <div class="photo-hover-overlay">
               <span class="photo-hover-badge">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
@@ -2511,7 +2554,9 @@ function openModalPhotoByIndex(idx) {
   const p = currentModalPhotos[idx];
   const shiftLabel = p.shift_type ? `Shift: ${p.shift_type}` : 'Verification Photo';
   const timeLabel = p.captured_at ? `Captured at ${p.captured_at}` : '';
-  openImageLightbox(p.full_url, shiftLabel, timeLabel, currentModalPhotos, idx);
+  const photoUrl = resolvePhotoUrl(p.full_url, p.image_path);
+  const fallbackUrl = (p.full_url && p.full_url !== photoUrl) ? p.full_url : '';
+  openImageLightbox(photoUrl, shiftLabel, timeLabel, currentModalPhotos, idx, fallbackUrl);
 }
 
 function openLiveCaptureLightbox(idx) {
@@ -2519,11 +2564,13 @@ function openLiveCaptureLightbox(idx) {
   const c = cachedLiveCaptures[idx];
   const title = `${c.full_name} (${c.student_number}) • Shift: ${c.shift_type}`;
   const subtitle = `Captured at ${c.captured_time} (${c.date}) • Facility: ${c.site_name || 'Assigned Site'}`;
-  openImageLightbox(c.full_url, title, subtitle);
+  const photoUrl = resolvePhotoUrl(c.full_url, c.image_path);
+  const fallbackUrl = (c.full_url && c.full_url !== photoUrl) ? c.full_url : '';
+  openImageLightbox(photoUrl, title, subtitle, null, -1, fallbackUrl);
 }
 
 // Lightbox Core Functions
-function openImageLightbox(imageUrl, title = 'Facial Verification Photo', subtitle = '', galleryItems = null, activeIndex = -1) {
+function openImageLightbox(imageUrl, title = 'Facial Verification Photo', subtitle = '', galleryItems = null, activeIndex = -1, fallbackUrl = '') {
   const modal = document.getElementById('imageLightboxModal');
   const img = document.getElementById('imageLightboxImg');
   const titleEl = document.getElementById('imageLightboxTitle');
@@ -2538,10 +2585,27 @@ function openImageLightbox(imageUrl, title = 'Facial Verification Photo', subtit
   currentLightboxGallery = Array.isArray(galleryItems) && galleryItems.length > 1 ? galleryItems : null;
   currentLightboxIndex = activeIndex;
 
-  img.src = imageUrl;
+  img.style.objectFit = 'contain';
+  img.style.backgroundColor = '#071b30';
+
+  img.onerror = function() {
+    if (fallbackUrl && this.src !== fallbackUrl && !this.dataset.triedLightboxAlt) {
+      this.dataset.triedLightboxAlt = '1';
+      this.src = fallbackUrl;
+      return;
+    }
+    this.onerror = function() {
+      this.onerror = null;
+      this.src = DEFAULT_STUDENT_AVATAR_FALLBACK;
+    };
+    this.src = DEFAULT_STUDENT_AVATAR;
+  };
+  img.dataset.triedLightboxAlt = '';
+  img.src = imageUrl || DEFAULT_STUDENT_AVATAR;
+
   if (titleEl) titleEl.textContent = title;
   if (subtitleEl) subtitleEl.textContent = subtitle;
-  if (externalBtn) externalBtn.href = imageUrl;
+  if (externalBtn) externalBtn.href = imageUrl || '#';
 
   if (currentLightboxGallery && currentLightboxIndex >= 0) {
     if (prevBtn) prevBtn.style.display = 'inline-flex';
@@ -2882,10 +2946,14 @@ function renderCurrentSlidePhoto() {
   if (btnNext) btnNext.style.display = hasMultiple ? 'flex' : 'none';
 
   // Display Image or Fallback
-  if (current.photo && current.photo.full_url) {
+  if (current.photo && (current.photo.full_url || current.photo.image_path)) {
     if (previewImg) {
-      previewImg.src = current.photo.full_url;
+      const pUrl = resolvePhotoUrl(current.photo.full_url, current.photo.image_path);
+      previewImg.src = pUrl;
       previewImg.style.display = 'block';
+      previewImg.onerror = function() {
+        handlePhotoError(this, current.photo.full_url);
+      };
     }
     if (noPhotoPlaceholder) noPhotoPlaceholder.style.display = 'none';
   } else {
@@ -3271,7 +3339,9 @@ function closeTagGroupModal() {
 function viewTagPhotoFull() {
   if (activeSlidePhotos[currentSlidePhotoIndex] && activeSlidePhotos[currentSlidePhotoIndex].photo) {
     const cur = activeSlidePhotos[currentSlidePhotoIndex];
-    openImageLightbox(cur.photo.full_url, `Verification Photo (${cur.label})`, `Captured at ${cur.time}`);
+    const photoUrl = resolvePhotoUrl(cur.photo.full_url, cur.photo.image_path);
+    const fallbackUrl = (cur.photo.full_url && cur.photo.full_url !== photoUrl) ? cur.photo.full_url : '';
+    openImageLightbox(photoUrl, `Verification Photo (${cur.label})`, `Captured at ${cur.time}`, null, -1, fallbackUrl);
   }
 }
 

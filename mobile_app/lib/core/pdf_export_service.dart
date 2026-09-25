@@ -20,7 +20,6 @@ class PdfExportService {
         margin: const pw.EdgeInsets.all(32),
         build: (pw.Context context) {
           return [
-
             pw.Center(
               child: pw.Column(
                 children: [
@@ -37,7 +36,6 @@ class PdfExportService {
                 ],
               ),
             ),
-
 
             pw.Container(
               padding: const pw.EdgeInsets.all(10),
@@ -57,7 +55,6 @@ class PdfExportService {
               ),
             ),
             pw.SizedBox(height: 20),
-
 
             pw.TableHelper.fromTextArray(
               headers: ['Date', 'AM In', 'AM Out', 'PM In', 'PM Out', 'Status'],
@@ -88,13 +85,11 @@ class PdfExportService {
 
             pw.SizedBox(height: 40),
 
-
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
                 pw.Column(
-                  crossAxisAlignment:
-                      pw.CrossAxisAlignment.center,
+                  crossAxisAlignment: pw.CrossAxisAlignment.center,
                   children: [
                     pw.Container(
                       width: 150,
@@ -115,8 +110,7 @@ class PdfExportService {
                   ],
                 ),
                 pw.Column(
-                  crossAxisAlignment:
-                      pw.CrossAxisAlignment.center,
+                  crossAxisAlignment: pw.CrossAxisAlignment.center,
                   children: [
                     pw.Container(
                       width: 150,
