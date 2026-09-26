@@ -1,0 +1,14 @@
+# Disable PHP and script execution in uploads directory
+<FilesMatch "\.(php|php3|php4|php5|phtml|pl|py|cgi|asp|js|sh)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order Deny,Allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Prevent directory indexing safely (safe for InfinityFree and all Apache environments)
+IndexIgnore *
+

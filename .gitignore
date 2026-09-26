@@ -3,6 +3,7 @@
 # Dynamic runtime upload assets
 uploads/*
 !uploads/**/.gitkeep
+!uploads/.htaccess
 
 # Flutter & Mobile App Build Artifacts
 **/build/

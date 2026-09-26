@@ -1,9 +1,8 @@
 # SBC Internship Attendance System — Root .htaccess
 # Apache web server configuration for production deployment
 
-# Enable URL rewriting
-Options -Indexes
-Options +FollowSymLinks
+# Prevent directory listing safely across all Apache shared hosts
+IndexIgnore *
 
 # --------------------------------------------------------
 # PHP Upload & Memory Limits (for selfie photo uploads)

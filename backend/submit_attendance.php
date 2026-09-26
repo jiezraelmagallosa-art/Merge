@@ -245,14 +245,16 @@ try {
                             }
                         }
 
+                        // Always compress and output as a clean, standardized JPEG
+                        $target_img = ($rotated !== false) ? $rotated : $img;
+                        ob_start();
+                        imagejpeg($target_img, null, 85);
+                        $image_base64_decoded = ob_get_clean();
                         if ($rotated !== false) {
-                            ob_start();
-                            imagejpeg($rotated, null, 92);
-                            $image_base64_decoded = ob_get_clean();
                             imagedestroy($rotated);
-                            $image_type = 'jpg';
                         }
                         imagedestroy($img);
+                        $image_type = 'jpg';
                     }
                 }
 
@@ -260,6 +262,7 @@ try {
                 $file_path = $upload_dir . $file_name;
                 $db_image_path = "uploads/live_captures/" . $file_name;
                 file_put_contents($file_path, $image_base64_decoded);
+                @chmod($file_path, 0644);
             }
         } catch (Exception $img_err) {
             error_log("Image upload exception: " . $img_err->getMessage());
