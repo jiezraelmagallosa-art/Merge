@@ -2,6 +2,9 @@
 // File: attendance_screen.dart
 
 import 'dart:convert';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import '../core/constants.dart';
@@ -112,7 +115,42 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       try {
         final XFile photo = await _cameraController!.takePicture();
         selfiePath = photo.path;
-        final bytes = await photo.readAsBytes();
+        Uint8List bytes = await photo.readAsBytes();
+
+        // Ensure captured photo is normalized to portrait and mirrored horizontally like preview
+        try {
+          final ui.Codec codec = await ui.instantiateImageCodec(bytes);
+          final ui.FrameInfo frameInfo = await codec.getNextFrame();
+          final ui.Image decodedImage = frameInfo.image;
+
+          final recorder = ui.PictureRecorder();
+          final canvas = Canvas(recorder);
+          int newWidth;
+          int newHeight;
+
+          if (decodedImage.width > decodedImage.height) {
+            newWidth = decodedImage.height;
+            newHeight = decodedImage.width;
+            canvas.scale(-1.0, 1.0);
+            canvas.rotate(math.pi / 2);
+            canvas.drawImage(decodedImage, Offset.zero, Paint());
+          } else {
+            newWidth = decodedImage.width;
+            newHeight = decodedImage.height;
+            canvas.translate(newWidth.toDouble(), 0);
+            canvas.scale(-1.0, 1.0);
+            canvas.drawImage(decodedImage, Offset.zero, Paint());
+          }
+
+          final ui.Image processedUiImage = await recorder.endRecording().toImage(newWidth, newHeight);
+          final ByteData? byteData = await processedUiImage.toByteData(format: ui.ImageByteFormat.png);
+          if (byteData != null) {
+            bytes = byteData.buffer.asUint8List();
+          }
+        } catch (normErr) {
+          debugPrint("Photo normalization error: $normErr");
+        }
+
         imageBase64 = base64Encode(bytes);
       } catch (e) {
         debugPrint("Failed to take photo: $e");
@@ -203,7 +241,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                   child: SizedBox(
                                     width: _cameraController!.value.previewSize!.height,
                                     height: _cameraController!.value.previewSize!.width,
-                                    child: CameraPreview(_cameraController!),
+                                    child: Transform.flip(
+                                      flipX: true,
+                                      child: CameraPreview(_cameraController!),
+                                    ),
                                   ),
                                 ),
                               )

@@ -416,31 +416,42 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       try {
         Uint8List bytes = await capturedPhoto.readAsBytes();
 
-        // Ensure captured photo is normalized to portrait orientation
+        // Ensure captured photo is normalized to portrait orientation and mirrored horizontally like a true selfie preview
         try {
           final ui.Codec codec = await ui.instantiateImageCodec(bytes);
           final ui.FrameInfo frameInfo = await codec.getNextFrame();
           final ui.Image decodedImage = frameInfo.image;
 
-          if (decodedImage.width > decodedImage.height) {
-            final recorder = ui.PictureRecorder();
-            final canvas = Canvas(recorder);
-            final int newWidth = decodedImage.height;
-            final int newHeight = decodedImage.width;
+          final recorder = ui.PictureRecorder();
+          final canvas = Canvas(recorder);
+          int newWidth;
+          int newHeight;
 
-            // Rotate 90 degrees clockwise to portrait orientation
-            canvas.translate(newWidth.toDouble(), 0);
+          if (decodedImage.width > decodedImage.height) {
+            newWidth = decodedImage.height;
+            newHeight = decodedImage.width;
+
+            // Rotate 90 degrees clockwise to portrait AND mirror horizontally
+            canvas.scale(-1.0, 1.0);
             canvas.rotate(math.pi / 2);
             canvas.drawImage(decodedImage, Offset.zero, Paint());
+          } else {
+            newWidth = decodedImage.width;
+            newHeight = decodedImage.height;
 
-            final ui.Image rotatedUiImage = await recorder.endRecording().toImage(newWidth, newHeight);
-            final ByteData? byteData = await rotatedUiImage.toByteData(format: ui.ImageByteFormat.png);
-            if (byteData != null) {
-              bytes = byteData.buffer.asUint8List();
-            }
+            // Mirror horizontally (flipX)
+            canvas.translate(newWidth.toDouble(), 0);
+            canvas.scale(-1.0, 1.0);
+            canvas.drawImage(decodedImage, Offset.zero, Paint());
+          }
+
+          final ui.Image rotatedUiImage = await recorder.endRecording().toImage(newWidth, newHeight);
+          final ByteData? byteData = await rotatedUiImage.toByteData(format: ui.ImageByteFormat.png);
+          if (byteData != null) {
+            bytes = byteData.buffer.asUint8List();
           }
         } catch (rotErr) {
-          debugPrint("Orientation normalization error: $rotErr");
+          debugPrint("Orientation & mirroring normalization error: $rotErr");
         }
 
         imageBase64 = base64Encode(bytes);
@@ -677,7 +688,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           child: SizedBox(
                             width: _cameraController!.value.previewSize!.height,
                             height: _cameraController!.value.previewSize!.width,
-                            child: CameraPreview(_cameraController!),
+                            child: Transform.flip(
+                              flipX: true,
+                              child: CameraPreview(_cameraController!),
+                            ),
                           ),
                         ),
                       ),

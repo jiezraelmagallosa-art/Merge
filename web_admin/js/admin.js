@@ -172,6 +172,22 @@ function setupEventListeners() {
         navigateLightbox(1);
         e.preventDefault();
       }
+      if (e.key === 'r' || e.key === 'R') {
+        rotateLightbox(90);
+        e.preventDefault();
+      }
+      if (e.key === 'l' || e.key === 'L') {
+        rotateLightbox(-90);
+        e.preventDefault();
+      }
+      if (e.key === 'm' || e.key === 'M') {
+        toggleLightboxMirror();
+        e.preventDefault();
+      }
+      if (e.key === '0') {
+        resetLightboxTransform();
+        e.preventDefault();
+      }
       return;
     }
 
@@ -452,7 +468,7 @@ function applyStudentFilters() {
   if (currentStudentSiteFilter !== 'ALL') {
     filtered = filtered.filter(s => {
       const siteMatch = (s.site_id?.toString() === currentStudentSiteFilter.toString()) ||
-                        (s.site_name && s.site_name.trim().toLowerCase() === currentStudentSiteFilter.trim().toLowerCase());
+        (s.site_name && s.site_name.trim().toLowerCase() === currentStudentSiteFilter.trim().toLowerCase());
       return siteMatch;
     });
   }
@@ -835,10 +851,10 @@ function applyLogsFilters(searchQuery = null) {
     // 5. Search Query Filter
     if (q) {
       const match = (l.full_name && l.full_name.toLowerCase().includes(q)) ||
-                    (l.student_number && l.student_number.toLowerCase().includes(q)) ||
-                    (l.date && l.date.toLowerCase().includes(q)) ||
-                    (l.course_code && l.course_code.toLowerCase().includes(q)) ||
-                    (l.site_name && l.site_name.toLowerCase().includes(q));
+        (l.student_number && l.student_number.toLowerCase().includes(q)) ||
+        (l.date && l.date.toLowerCase().includes(q)) ||
+        (l.course_code && l.course_code.toLowerCase().includes(q)) ||
+        (l.site_name && l.site_name.toLowerCase().includes(q));
       if (!match) return false;
     }
 
@@ -940,8 +956,8 @@ function renderLogsTable(logs) {
     // Overall status badge
     let overallBadge = 'badge-warning';
     if (l.status === 'Confirmed') overallBadge = 'badge-success';
-    if (l.status === 'Rejected')  overallBadge = 'badge-danger';
-    if (l.status === 'Partial')   overallBadge = 'badge-warning';
+    if (l.status === 'Rejected') overallBadge = 'badge-danger';
+    if (l.status === 'Partial') overallBadge = 'badge-warning';
 
     const hasMorning = (l.time_in_morning && l.time_in_morning !== '--:--') || (l.time_out_morning && l.time_out_morning !== '--:--');
     const hasAfternoon = (l.time_in_afternoon && l.time_in_afternoon !== '--:--') || (l.time_out_afternoon && l.time_out_afternoon !== '--:--');
@@ -2566,6 +2582,68 @@ function openLiveCaptureLightbox(idx) {
   openImageLightbox(photoUrl, title, subtitle, null, -1, fallbackUrl);
 }
 
+// Lightbox Rotation & Mirror Transformation State
+let currentLightboxRotation = 0;
+let currentLightboxMirrored = false;
+
+function applyLightboxTransform() {
+  const img = document.getElementById('imageLightboxImg');
+  const resetBtn = document.getElementById('lightboxResetBtn');
+  const mirrorBtn = document.getElementById('lightboxMirrorBtn');
+  if (!img) return;
+
+  const deg = ((currentLightboxRotation % 360) + 360) % 360;
+  const isMirrored = currentLightboxMirrored;
+  const scaleX = isMirrored ? -1 : 1;
+
+  img.style.transform = `rotate(${deg}deg) scaleX(${scaleX})`;
+  img.style.transition = 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)';
+
+  // If rotated sideways (90 or 270 deg), adjust dimensions so it fits nicely
+  const isSideways = (deg === 90 || deg === 270);
+  if (isSideways) {
+    img.style.maxHeight = '72vw';
+    img.style.maxWidth = '68vh';
+  } else {
+    img.style.maxHeight = '72vh';
+    img.style.maxWidth = '100%';
+  }
+
+  if (resetBtn) {
+    const isTransformed = (deg !== 0 || isMirrored);
+    resetBtn.style.display = isTransformed ? 'inline-flex' : 'none';
+  }
+
+  if (mirrorBtn) {
+    if (isMirrored) {
+      mirrorBtn.style.background = 'rgba(245, 158, 11, 0.25)';
+      mirrorBtn.style.borderColor = '#f59e0b';
+      mirrorBtn.style.color = '#f59e0b';
+    } else {
+      mirrorBtn.style.background = '';
+      mirrorBtn.style.borderColor = '';
+      mirrorBtn.style.color = '';
+    }
+  }
+}
+
+function rotateLightbox(deltaDegrees) {
+  currentLightboxRotation = (currentLightboxRotation + deltaDegrees) % 360;
+  if (currentLightboxRotation < 0) currentLightboxRotation += 360;
+  applyLightboxTransform();
+}
+
+function toggleLightboxMirror() {
+  currentLightboxMirrored = !currentLightboxMirrored;
+  applyLightboxTransform();
+}
+
+function resetLightboxTransform() {
+  currentLightboxRotation = 0;
+  currentLightboxMirrored = false;
+  applyLightboxTransform();
+}
+
 // Lightbox Core Functions
 function openImageLightbox(imageUrl, title = 'Facial Verification Photo', subtitle = '', galleryItems = null, activeIndex = -1, fallbackUrl = '') {
   const modal = document.getElementById('imageLightboxModal');
@@ -2582,10 +2660,12 @@ function openImageLightbox(imageUrl, title = 'Facial Verification Photo', subtit
   currentLightboxGallery = Array.isArray(galleryItems) && galleryItems.length > 1 ? galleryItems : null;
   currentLightboxIndex = activeIndex;
 
+  resetLightboxTransform();
+
   img.style.objectFit = 'contain';
   img.style.backgroundColor = '#071b30';
 
-  img.onerror = function() {
+  img.onerror = function () {
     if (fallbackUrl && this.src !== fallbackUrl && !this.dataset.triedLightboxAlt) {
       this.dataset.triedLightboxAlt = '1';
       this.src = fallbackUrl;
@@ -2631,6 +2711,7 @@ function closeImageLightbox() {
   if (modal) {
     modal.classList.remove('active');
   }
+  resetLightboxTransform();
 }
 
 function handleLightboxBackdropClick(event) {
@@ -2945,7 +3026,7 @@ function renderCurrentSlidePhoto() {
       const pUrl = resolvePhotoUrl(current.photo.full_url, current.photo.image_path);
       previewImg.src = pUrl;
       previewImg.style.display = 'block';
-      previewImg.onerror = function() {
+      previewImg.onerror = function () {
         handlePhotoError(this, current.photo.full_url);
       };
     }
@@ -3163,9 +3244,9 @@ function renderTagStudentList() {
     if (siteQ !== 'ALL' && (s.site_name || '').trim() !== siteQ) return false;
     if (q) {
       const match = (s.full_name && s.full_name.toLowerCase().includes(q)) ||
-                    (s.student_number && s.student_number.toLowerCase().includes(q)) ||
-                    (s.course_code && s.course_code.toLowerCase().includes(q)) ||
-                    (s.site_name && s.site_name.toLowerCase().includes(q));
+        (s.student_number && s.student_number.toLowerCase().includes(q)) ||
+        (s.course_code && s.course_code.toLowerCase().includes(q)) ||
+        (s.site_name && s.site_name.toLowerCase().includes(q));
       if (!match) return false;
     }
     return true;
@@ -3286,9 +3367,9 @@ function selectAllFilteredStudents(selectAll) {
     if (siteQ !== 'ALL' && (s.site_name || '').trim() !== siteQ) return false;
     if (q) {
       const match = (s.full_name && s.full_name.toLowerCase().includes(q)) ||
-                    (s.student_number && s.student_number.toLowerCase().includes(q)) ||
-                    (s.course_code && s.course_code.toLowerCase().includes(q)) ||
-                    (s.site_name && s.site_name.toLowerCase().includes(q));
+        (s.student_number && s.student_number.toLowerCase().includes(q)) ||
+        (s.course_code && s.course_code.toLowerCase().includes(q)) ||
+        (s.site_name && s.site_name.toLowerCase().includes(q));
       if (!match) return false;
     }
     return true;

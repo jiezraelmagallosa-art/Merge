@@ -1445,6 +1445,18 @@ body {
   border-color: rgba(255, 255, 255, 0.3);
 }
 
+.lightbox-transform-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+@media (max-width: 640px) {
+  .lightbox-transform-controls .btn-lightbox-action span {
+    display: none;
+  }
+}
+
 .btn-lightbox-close {
   background: transparent;
   border: none;
