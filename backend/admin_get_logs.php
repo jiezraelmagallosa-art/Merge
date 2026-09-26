@@ -119,6 +119,9 @@ try {
                     }
                 }
 
+                $has_m_punches = (!empty($row['time_in_morning']) || !empty($row['time_out_morning']));
+                $has_a_punches = (!empty($row['time_in_afternoon']) || !empty($row['time_out_afternoon']));
+
                 $logs[] = [
                     "attendance_id" => intval($row['attendance_id']),
                     "student_id" => intval($row['student_id'] ?? 0),
@@ -134,9 +137,9 @@ try {
                     "time_out_afternoon" => $a_out,
                     "status" => $status,
                     "remarks" => trim(preg_replace('/\s*\/\s*in car/i', '', $row['attendance_remarks'] ?? '')),
-                    "morning_status" => $row['morning_status'] ?? 'Pending',
+                    "morning_status" => $has_m_punches ? ($row['morning_status'] ?? 'Pending') : null,
                     "morning_remarks" => $m_remarks,
-                    "afternoon_status" => $row['afternoon_status'] ?? 'Pending',
+                    "afternoon_status" => $has_a_punches ? ($row['afternoon_status'] ?? 'Pending') : null,
                     "afternoon_remarks" => $a_remarks,
                     "is_confirmed" => ($raw_att_status === 'Confirmed'),
                     "is_rejected" => ($raw_att_status === 'Rejected'),

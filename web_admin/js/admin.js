@@ -825,13 +825,22 @@ function applyLogsFilters(searchQuery = null) {
     }
 
     // 2. Verification Status Filter
+    const hasM = (l.time_in_morning && l.time_in_morning !== '--:--') || (l.time_out_morning && l.time_out_morning !== '--:--');
+    const hasA = (l.time_in_afternoon && l.time_in_afternoon !== '--:--') || (l.time_out_afternoon && l.time_out_afternoon !== '--:--');
+    const isMPending = hasM && (!l.morning_status || l.morning_status === 'Pending');
+    const isAPending = hasA && (!l.afternoon_status || l.afternoon_status === 'Pending');
+
     if (currentLogsStatusFilter === 'Pending') {
-      const isPending = l.status === 'Pending' || l.status === 'Partial' || l.morning_status === 'Pending' || l.afternoon_status === 'Pending';
+      // Confirmed or fully Rejected records are NEVER pending review
+      if (l.status === 'Confirmed' || l.status === 'Rejected') {
+        return false;
+      }
+      const isPending = l.status === 'Pending' || l.status === 'Partial' || isMPending || isAPending;
       if (!isPending) return false;
     } else if (currentLogsStatusFilter === 'Confirmed') {
-      if (l.status !== 'Confirmed' && l.morning_status !== 'Confirmed' && l.afternoon_status !== 'Confirmed') return false;
+      if (l.status !== 'Confirmed') return false;
     } else if (currentLogsStatusFilter === 'Rejected') {
-      if (l.status !== 'Rejected' && l.morning_status !== 'Rejected' && l.afternoon_status !== 'Rejected') return false;
+      if (l.status !== 'Rejected') return false;
     }
 
     // 3. Partner Facility Filter
@@ -961,36 +970,55 @@ function renderLogsTable(logs) {
 
     const hasMorning = (l.time_in_morning && l.time_in_morning !== '--:--') || (l.time_out_morning && l.time_out_morning !== '--:--');
     const hasAfternoon = (l.time_in_afternoon && l.time_in_afternoon !== '--:--') || (l.time_out_afternoon && l.time_out_afternoon !== '--:--');
-    const isMorningPending = (!l.morning_status || l.morning_status === 'Pending');
+    const isMorningPending = hasMorning && (!l.morning_status || l.morning_status === 'Pending');
+    const isAfternoonPending = hasAfternoon && (!l.afternoon_status || l.afternoon_status === 'Pending');
 
     let evalControls = '';
 
-    if (hasMorning && !hasAfternoon) {
-      // 1. Morning shift only
+    if (l.status === 'Confirmed') {
+      evalControls = `
+        <div class="dean-action-cell" style="justify-content: center;">
+          <span class="badge badge-success" style="font-size: 0.72rem; padding: 0.35rem 0.65rem;">✓ Confirmed</span>
+        </div>`;
+    } else if (l.status === 'Rejected') {
+      evalControls = `
+        <div class="dean-action-cell" style="justify-content: center;">
+          <span class="badge badge-danger" style="font-size: 0.72rem; padding: 0.35rem 0.65rem;">✕ Rejected</span>
+        </div>`;
+    } else if (hasMorning && !hasAfternoon) {
+      // 1. Morning shift only & pending
       evalControls = `
         <div class="dean-action-cell">
           <button class="dean-btn-tag" style="background-color: #eab308; color: #1e293b;" title="Tag students present in group photo" onclick="openTagGroupModal(${l.attendance_id}, 'morning')">Tag</button>
           <button class="dean-btn-reject" onclick="reviewAttendanceLog(${l.attendance_id}, 'Rejected', 'morning')">Reject</button>
         </div>
       `;
-    } else if (hasMorning && hasAfternoon && isMorningPending) {
-      // 2. Both shifts, morning not yet reviewed
+    } else if (hasMorning && hasAfternoon && isMorningPending && isAfternoonPending) {
+      // 2. Both shifts, both pending
       evalControls = `
         <div class="dean-action-cell">
           <button class="dean-btn-tag" style="background-color: #eab308; color: #1e293b;" title="Tag students present in group photo" onclick="openTagGroupModal(${l.attendance_id})">Tag</button>
           <button class="dean-btn-reject" title="Reject Attendance Log" onclick="reviewAttendanceLog(${l.attendance_id}, 'Rejected', 'morning')">Reject</button>
         </div>
       `;
-    } else if (hasMorning && hasAfternoon && !isMorningPending) {
-      // 3. Morning already reviewed, afternoon pending
+    } else if (hasMorning && hasAfternoon && isMorningPending) {
+      // 3. Morning pending, afternoon already reviewed
       evalControls = `
         <div class="dean-action-cell">
-          <button class="dean-btn-tag" style="background-color: #eab308; color: #1e293b;" title="Tag students present in group photo" onclick="openTagGroupModal(${l.attendance_id}, 'afternoon')">Tag</button>
+          <button class="dean-btn-tag" style="background-color: #eab308; color: #1e293b;" title="Tag students present in group photo" onclick="openTagGroupModal(${l.attendance_id}, 'morning')">Tag (M)</button>
+          <button class="dean-btn-reject" onclick="reviewAttendanceLog(${l.attendance_id}, 'Rejected', 'morning')">Reject</button>
+        </div>
+      `;
+    } else if (hasMorning && hasAfternoon && isAfternoonPending) {
+      // 4. Afternoon pending, morning already reviewed
+      evalControls = `
+        <div class="dean-action-cell">
+          <button class="dean-btn-tag" style="background-color: #eab308; color: #1e293b;" title="Tag students present in group photo" onclick="openTagGroupModal(${l.attendance_id}, 'afternoon')">Tag (A)</button>
           <button class="dean-btn-reject" onclick="reviewAttendanceLog(${l.attendance_id}, 'Rejected', 'afternoon')">Reject</button>
         </div>
       `;
     } else if (!hasMorning && hasAfternoon) {
-      // 4. Afternoon shift only
+      // 5. Afternoon shift only & pending
       evalControls = `
         <div class="dean-action-cell">
           <button class="dean-btn-tag" style="background-color: #eab308; color: #1e293b;" title="Tag students present in group photo" onclick="openTagGroupModal(${l.attendance_id}, 'afternoon')">Tag</button>
@@ -1000,7 +1028,7 @@ function renderLogsTable(logs) {
     } else {
       evalControls = `
         <div style="font-size: 0.75rem; color: var(--text-light); text-align: center;">
-          No logs recorded
+          No pending action
         </div>
       `;
     }
