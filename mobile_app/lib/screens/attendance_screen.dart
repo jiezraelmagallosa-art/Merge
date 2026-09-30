@@ -242,7 +242,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                     width: _cameraController!.value.previewSize!.height,
                                     height: _cameraController!.value.previewSize!.width,
                                     child: Transform.flip(
-                                      flipX: true,
+                                      flipX: false,
                                       child: CameraPreview(_cameraController!),
                                     ),
                                   ),

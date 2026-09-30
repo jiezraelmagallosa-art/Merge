@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:camera/camera.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../main.dart';
 import '../services/api_service.dart';
 import '../core/motivational_messages.dart';
@@ -45,6 +46,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool _isCameraInitialized = false;
   bool _isCameraActive = false;
   bool _isInitializingCamera = false;
+  bool _isLiveCamFlipped = false;
 
 
   int _countdownSeconds = 0;
@@ -74,6 +76,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _loadLiveCamMirrorPreference();
     _fetchDashboardData();
 
 
@@ -100,6 +103,46 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (state == AppLifecycleState.inactive ||
         state == AppLifecycleState.paused) {
       _closeCamera();
+    }
+  }
+
+  Future<void> _loadLiveCamMirrorPreference() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (mounted) {
+        setState(() {
+          _isLiveCamFlipped = prefs.getBool('live_cam_flipped') ?? false;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _toggleLiveCamMirror() async {
+    setState(() {
+      _isLiveCamFlipped = !_isLiveCamFlipped;
+    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('live_cam_flipped', _isLiveCamFlipped);
+    } catch (_) {}
+    if (mounted) {
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.flip_rounded, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                _isLiveCamFlipped ? 'Camera preview unmirrored (flipped)' : 'Camera preview mirrored',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+          backgroundColor: primaryNavy,
+          duration: const Duration(seconds: 2),
+        ),
+      );
     }
   }
 
@@ -689,7 +732,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             width: _cameraController!.value.previewSize!.height,
                             height: _cameraController!.value.previewSize!.width,
                             child: Transform.flip(
-                              flipX: true,
+                              flipX: _isLiveCamFlipped,
                               child: CameraPreview(_cameraController!),
                             ),
                           ),
@@ -893,16 +936,34 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     Positioned(
                       top: 8,
                       left: 8,
-                      child: IconButton(
-                        onPressed: _closeCamera,
-                        icon: const Icon(
-                          Icons.close_rounded,
-                          color: Colors.white,
-                        ),
-                        tooltip: 'Close Camera',
-                        style: IconButton.styleFrom(
-                          backgroundColor: Colors.black54,
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            onPressed: _closeCamera,
+                            icon: const Icon(
+                              Icons.close_rounded,
+                              color: Colors.white,
+                            ),
+                            tooltip: 'Close Camera',
+                            style: IconButton.styleFrom(
+                              backgroundColor: Colors.black54,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          IconButton(
+                            onPressed: _toggleLiveCamMirror,
+                            icon: const Icon(
+                              Icons.flip_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                            tooltip: 'Mirror / Flip Camera',
+                            style: IconButton.styleFrom(
+                              backgroundColor: Colors.black54,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
