@@ -58,6 +58,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ? (int.tryParse(user['student_id']?.toString() ?? '1') ?? 1)
           : 1;
 
+      ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -73,7 +74,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ],
           ),
           backgroundColor: AppColors.successGreen,
-          duration: const Duration(seconds: 4),
+          duration: const Duration(seconds: 3),
         ),
       );
 
@@ -88,6 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
       final String errorMsg =
           result['message'] ?? 'Login failed. Please check your credentials.';
 
+      ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -98,7 +100,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ],
           ),
           backgroundColor: Colors.redAccent,
-          duration: const Duration(seconds: 6),
+          duration: const Duration(seconds: 3),
           action: SnackBarAction(
             label: 'SERVER IP',
             textColor: Colors.amber,
@@ -159,6 +161,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 final messenger = ScaffoldMessenger.of(context);
                 Navigator.pop(context);
                 final reachable = await ApiService.isServerReachable();
+                messenger.clearSnackBars();
                 messenger.showSnackBar(
                   SnackBar(
                     content: Text(
@@ -169,6 +172,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     backgroundColor: reachable
                         ? AppColors.successGreen
                         : Colors.orange,
+                    duration: const Duration(seconds: 3),
                   ),
                 );
               }
