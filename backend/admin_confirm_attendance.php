@@ -100,6 +100,14 @@ try {
         // Re-evaluate overall status
         updateAttendanceOverallStatus($conn, $attendance_id);
 
+        // Synchronize Dean confirmation with CIT Department System -> marks as Present
+        try {
+            require_once __DIR__ . '/cit_sync_helper.php';
+            syncDeanConfirmationToCitSystem($conn, $attendance_id, $shift, 'Confirmed');
+        } catch (Throwable $eSync) {
+            error_log("CIT Dean confirmation sync error: " . $eSync->getMessage());
+        }
+
         echo json_encode([
             "status" => "success",
             "message" => ucfirst($shift) . " shift attendance confirmed. {$deleted_files_count} photo(s) purged.",
@@ -149,6 +157,14 @@ try {
 
         // Re-evaluate overall status
         updateAttendanceOverallStatus($conn, $attendance_id);
+
+        // Synchronize Dean rejection with CIT Department System -> marks as Absent / Rejected
+        try {
+            require_once __DIR__ . '/cit_sync_helper.php';
+            syncDeanConfirmationToCitSystem($conn, $attendance_id, $shift, 'Rejected');
+        } catch (Throwable $eSync) {
+            error_log("CIT Dean rejection sync error: " . $eSync->getMessage());
+        }
 
         echo json_encode([
             "status" => "success",

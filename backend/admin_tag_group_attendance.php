@@ -388,6 +388,12 @@ try {
 
         $credited_count++;
         $processed_students[] = $st_id;
+
+        // Synchronize credited student attendance confirmation to CIT
+        try {
+            require_once __DIR__ . '/cit_sync_helper.php';
+            syncStudentOjtAttendanceConfirmationToCit($conn, $st_id, $ref_date, $shift);
+        } catch (Throwable $eSync) {}
     }
 
     $shift_labels = [

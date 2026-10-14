@@ -511,7 +511,10 @@ function renderStudentsTable(students) {
       <tr>
         <td>
           <div style="font-weight: 700; color: var(--navy-primary);">${escapeHtml(s.full_name)}</div>
-          <div style="font-size: 0.75rem; color: var(--text-muted);">${s.student_number} &bull; ${s.id_no}</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; margin-top: 0.15rem;">
+            <span>${s.student_number} &bull; ${s.id_no}</span>
+            ${s.rfid_uid ? `<span class="badge" style="background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; font-size:0.68rem; padding:0.1rem 0.4rem; font-weight:700;" title="RFID Card UID: ${escapeHtml(s.rfid_uid)}">💳 RFID Mapped</span>` : `<span class="badge" style="background:#f8fafc; color:#94a3b8; border:1px solid #e2e8f0; font-size:0.68rem; padding:0.1rem 0.35rem;">No RFID</span>`}
+          </div>
         </td>
         <td>
           <div><span class="badge ${courseBadge}">${escapeHtml(s.course_code)}</span></div>
@@ -532,7 +535,10 @@ function renderStudentsTable(students) {
         <td><span class="badge ${statusBadgeClass}">${s.progress_percentage >= 100 || s.status === 'Completed' ? '🏆 Completed 🎉' : s.status}</span></td>
 
         <td>
-          <button class="btn btn-outline" onclick="openStudentDrawer('${s.student_id}')">Details</button>
+          <div style="display:flex; gap:0.4rem; align-items:center;">
+            <button class="btn btn-outline" style="padding:0.35rem 0.65rem; font-size:0.78rem;" onclick="openStudentDrawer('${s.student_id}')">Details</button>
+            <button class="btn btn-outline" style="padding:0.35rem 0.65rem; font-size:0.78rem; border-color:#f59e0b; color:#d97706; font-weight:700;" onclick="openRfidMappingModal('${s.student_id}', '${escapeHtml(s.full_name).replace(/'/g, "\\'")}', '${s.student_number}', '${s.rfid_uid || ''}', '${escapeHtml(s.course_code)}')" title="Map School ID or RFID Card for instant tap in line">💳 Map RFID</button>
+          </div>
         </td>
       </tr>
     `;
@@ -1057,7 +1063,10 @@ function renderLogsTable(logs) {
         <td style="font-weight: 700; color: var(--navy-primary); white-space: nowrap;">${l.date}</td>
         <td>
           <div style="font-weight: 700;">${escapeHtml(l.full_name)}</div>
-          <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem;">${l.student_number} &bull; <span class="badge ${courseBadge}">${l.course_code}</span></div>
+          <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem; display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
+            <span>${l.student_number}</span> &bull; <span class="badge ${courseBadge}">${l.course_code}</span>
+            ${(l.remarks && l.remarks.includes('ID Tap')) ? `<span class="badge" style="background:#fef3c7; color:#92400e; border:1px solid #fde68a; font-size:0.68rem; padding:0.1rem 0.4rem; font-weight:700;" title="${escapeHtml(l.remarks)}">💳 ID Tap</span>` : (hasPhotos ? `<span class="badge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-size:0.68rem; padding:0.1rem 0.4rem; font-weight:700;">📱 Live Capture</span>` : '')}
+          </div>
           <div style="font-size: 0.72rem; color: #64748b;">${escapeHtml(l.site_name || '')}</div>
         </td>
         <td>${morningShiftHtml}</td>
@@ -4260,5 +4269,142 @@ window.filterReportByCourse = filterReportByCourse;
 window.filterReportByStatus = filterReportByStatus;
 window.filterReportBySite = filterReportBySite;
 window.deleteStudentAccount = deleteStudentAccount;
+
+// ==========================================
+// RFID / SCHOOL ID CARD MAPPING MODAL
+// ==========================================
+let activeMappingStudentId = null;
+
+function openRfidMappingModal(studentId, fullName, studentNumber, currentRfid, courseCode) {
+  activeMappingStudentId = studentId;
+  const modal = document.getElementById('rfidMappingModal');
+  const nameEl = document.getElementById('rfidModalStudentName');
+  const detailsEl = document.getElementById('rfidModalStudentDetails');
+  const inputEl = document.getElementById('rfidModalInput');
+  const msgEl = document.getElementById('rfidModalStatusMsg');
+
+  if (nameEl) nameEl.textContent = fullName;
+  if (detailsEl) detailsEl.textContent = `${studentNumber} • ${courseCode || 'OJT Intern'}${currentRfid ? ` (Current RFID: ${currentRfid})` : ' (No RFID Mapped)'}`;
+  if (inputEl) {
+    inputEl.value = currentRfid || '';
+    setTimeout(() => {
+      inputEl.focus();
+      inputEl.select();
+    }, 150);
+  }
+  if (msgEl) {
+    msgEl.className = 'badge hidden';
+    msgEl.textContent = '';
+  }
+
+  if (modal) {
+    modal.classList.add('active');
+    modal.style.display = 'flex';
+  }
+}
+
+function closeRfidMappingModal() {
+  const modal = document.getElementById('rfidMappingModal');
+  if (modal) {
+    modal.classList.remove('active');
+    modal.style.display = 'none';
+  }
+  activeMappingStudentId = null;
+}
+
+async function saveStudentRfid() {
+  if (!activeMappingStudentId) return;
+  const inputEl = document.getElementById('rfidModalInput');
+  const msgEl = document.getElementById('rfidModalStatusMsg');
+  const rfidVal = (inputEl ? inputEl.value : '').trim();
+
+  if (!rfidVal) {
+    if (msgEl) {
+      msgEl.className = 'badge badge-danger';
+      msgEl.textContent = 'Please tap or enter an RFID card UID.';
+      msgEl.classList.remove('hidden');
+    }
+    return;
+  }
+
+  try {
+    const res = await fetch(API_BASE + 'tap_attendance_api.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'map_rfid',
+        student_id: activeMappingStudentId,
+        rfid_uid: rfidVal
+      })
+    });
+    const data = await res.json();
+    if (data.status === 'success') {
+      if (msgEl) {
+        msgEl.className = 'badge badge-success';
+        msgEl.textContent = data.message || 'RFID card successfully mapped!';
+        msgEl.classList.remove('hidden');
+      }
+      await fetchStudents();
+      setTimeout(closeRfidMappingModal, 1100);
+    } else {
+      if (msgEl) {
+        msgEl.className = 'badge badge-danger';
+        msgEl.textContent = data.message || 'Failed to map RFID card.';
+        msgEl.classList.remove('hidden');
+      }
+    }
+  } catch (err) {
+    if (msgEl) {
+      msgEl.className = 'badge badge-danger';
+      msgEl.textContent = 'Network error saving RFID card.';
+      msgEl.classList.remove('hidden');
+    }
+  }
+}
+
+async function clearStudentRfid() {
+  if (!activeMappingStudentId) return;
+  if (!confirm('Are you sure you want to remove the mapped RFID card from this student?')) return;
+
+  const msgEl = document.getElementById('rfidModalStatusMsg');
+  try {
+    const res = await fetch(API_BASE + 'admin_student_manage.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'update_rfid',
+        student_id: activeMappingStudentId,
+        rfid_uid: ''
+      })
+    });
+    const data = await res.json();
+    if (data.status === 'success') {
+      await fetchStudents();
+      closeRfidMappingModal();
+    } else {
+      alert(data.message || 'Error clearing RFID card.');
+    }
+  } catch (e) {
+    alert('Network error while clearing RFID card.');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const rfidInput = document.getElementById('rfidModalInput');
+  if (rfidInput) {
+    rfidInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        saveStudentRfid();
+      }
+    });
+  }
+});
+
+window.openRfidMappingModal = openRfidMappingModal;
+window.closeRfidMappingModal = closeRfidMappingModal;
+window.saveStudentRfid = saveStudentRfid;
+window.clearStudentRfid = clearStudentRfid;
+
 
 

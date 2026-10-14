@@ -1,4 +1,22 @@
 {
     "java.jdt.ls.java.home": "C:\\Program Files\\Android\\Android Studio\\jbr",
-    "java.home": "C:\\Program Files\\Android\\Android Studio\\jbr"
+    "java.home": "C:\\Program Files\\Android\\Android Studio\\jbr",
+    "python.defaultInterpreterPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}\\cit_department_system",
+        "${workspaceFolder}\\.venv\\Lib\\site-packages"
+    ],
+    "python.autoComplete.extraPaths": [
+        "${workspaceFolder}\\cit_department_system",
+        "${workspaceFolder}\\.venv\\Lib\\site-packages"
+    ],
+    "python.analysis.typeCheckingMode": "off",
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportMissingImports": "none",
+        "reportMissingModuleSource": "none"
+    },
+    "python.pyrefly.typeCheckingMode": "off",
+    "python.pyrefly.disableTypeErrors": true,
+    "python.pyrefly.displayTypeErrors": "force-off",
+    "python.pyrefly.configPath": "${workspaceFolder}\\pyrefly.toml"
 }

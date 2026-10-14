@@ -1,0 +1,13 @@
+project-includes = ["cit_department_system"]
+search-path = [
+    "cit_department_system",
+    ".venv/Lib/site-packages",
+]
+check-unannotated-defs = false
+infer-with-first-use = false
+
+[errors]
+missing-import = "ignore"
+missing-source = "ignore"
+untyped-import = "ignore"
+missing-source-for-stubs = "ignore"

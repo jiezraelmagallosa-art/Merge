@@ -304,6 +304,14 @@ try {
         }
     }
 
+    // Automatically synchronize Live Capture attendance to CIT Department System (Pending Dean Review - NOT Present)
+    try {
+        require_once __DIR__ . '/cit_sync_helper.php';
+        syncAttendanceToCitSystem($conn, $resolved_ojt_id, $column_to_update, $current_date, $current_time, false);
+    } catch (Throwable $eSync) {
+        // Suppress sync error to avoid breaking student mobile response
+    }
+
     require_once 'motivational_messages.php';
     $motivational_msg = getRandomMotivationalMessage($column_to_update);
 

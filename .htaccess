@@ -1,6 +1,8 @@
 # SBC Internship Attendance System — Root .htaccess
 # Apache web server configuration for production deployment
 
+DirectoryIndex index.php index.html
+
 # Prevent directory listing safely across all Apache shared hosts
 IndexIgnore *
 
@@ -36,9 +38,6 @@ IndexIgnore *
     # Block .git, .env and other hidden directories
     RewriteRule ^\.git - [F,L]
     RewriteRule ^\.env - [F,L]
-
-    # Redirect root to web_admin
-    RewriteRule ^$ web_admin/index.html [L,R=302]
 </IfModule>
 
 # --------------------------------------------------------

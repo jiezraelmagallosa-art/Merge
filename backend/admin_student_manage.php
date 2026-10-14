@@ -130,6 +130,41 @@ try {
         exit();
     }
 
+    // ACTION: UPDATE / MAP STUDENT RFID UID
+    if ($action === 'update_rfid' || $action === 'map_rfid') {
+        $rfid_uid = isset($data['rfid_uid']) ? trim($data['rfid_uid']) : '';
+
+        if (!empty($rfid_uid)) {
+            $stmt_check = $conn->prepare("SELECT student_id, full_name, student_number FROM student WHERE rfid_uid = ? AND student_id != ? LIMIT 1");
+            $stmt_check->bind_param("si", $rfid_uid, $student_id);
+            $stmt_check->execute();
+            $dup_res = $stmt_check->get_result();
+            if ($dup_res && $dup_row = $dup_res->fetch_assoc()) {
+                $stmt_check->close();
+                echo json_encode([
+                    "status" => "error",
+                    "message" => "This RFID UID (" . htmlspecialchars($rfid_uid) . ") is already mapped to " . $dup_row['full_name'] . " (" . $dup_row['student_number'] . ")."
+                ]);
+                exit();
+            }
+            $stmt_check->close();
+        }
+
+        $rfid_val = !empty($rfid_uid) ? $rfid_uid : null;
+        $s_stmt = $conn->prepare("UPDATE student SET rfid_uid = ? WHERE student_id = ?");
+        $s_stmt->bind_param("si", $rfid_val, $student_id);
+        $s_stmt->execute();
+        $s_stmt->close();
+
+        echo json_encode([
+            "status" => "success",
+            "message" => !empty($rfid_uid) ? "RFID card UID mapped successfully!" : "RFID card association cleared.",
+            "student_id" => $student_id,
+            "rfid_uid" => $rfid_uid
+        ]);
+        exit();
+    }
+
     // ACTION 3: DELETE STUDENT ACCOUNT AND ALL LINKED RECORDS
     if ($action === 'delete_student' || $action === 'delete') {
         // 1. Verify student exists and retrieve full name

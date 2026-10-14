@@ -42,6 +42,12 @@ try {
         }
     }
 
+    $col_rfid = @$conn->query("SHOW COLUMNS FROM student LIKE 'rfid_uid'");
+    if ($col_rfid && $col_rfid->num_rows == 0) {
+        @$conn->query("ALTER TABLE student ADD COLUMN rfid_uid VARCHAR(100) NULL AFTER id_no");
+        @$conn->query("ALTER TABLE student ADD INDEX idx_student_rfid (rfid_uid)");
+    }
+
     $col_course_hours = @$conn->query("SHOW COLUMNS FROM course LIKE 'required_hours'");
     if ($col_course_hours && $col_course_hours->num_rows == 0) {
         @$conn->query("ALTER TABLE course ADD COLUMN required_hours INT DEFAULT 480 AFTER course_name");
@@ -122,6 +128,21 @@ try {
     }
     // Clean up orphaned OJT records whose student no longer exists
     @$conn->query("DELETE FROM ojt WHERE student_id NOT IN (SELECT student_id FROM student)");
+
+    // Ensure CIT Department System tables and mirror students in unified database
+    require_once __DIR__ . '/cit_sync_helper.php';
+    ensureCitDepartmentTables($conn);
+    @$conn->query("INSERT IGNORE INTO students (student_id, firstname, lastname, course, year_level, rfid_uid, status)
+        SELECT 
+            s.student_number,
+            SUBSTRING_INDEX(s.full_name, ' ', 1),
+            CASE WHEN INSTR(s.full_name, ' ') > 0 THEN SUBSTRING(s.full_name, INSTR(s.full_name, ' ') + 1) ELSE 'Student' END,
+            COALESCE(c.course_code, 'BSCS'),
+            '4',
+            s.rfid_uid,
+            'Active'
+        FROM student s
+        LEFT JOIN course c ON s.course_id = c.course_id");
 } catch (Throwable $e) {
     // Database tables not created yet or query suppressed
 }
@@ -149,7 +170,7 @@ header('Access-Control-Allow-Origin: ' . $cors_origin);
 header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit();
 }

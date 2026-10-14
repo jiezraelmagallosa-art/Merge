@@ -25,4 +25,8 @@ Thumbs.db
 !.vscode/settings.json
 .idea/
 *.iml
-
+# Python virtual environment & cache
+.venv/
+**/__pycache__/
+*.pyc
+.ruff_cache/
