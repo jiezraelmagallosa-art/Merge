@@ -54,13 +54,16 @@ let currentLogsDateFilter = 'TODAY'; // Default to Today's data!
 let currentLogsCustomDate = '';
 let currentLogsStatusFilter = 'ALL';
 let currentLogsSiteFilter = 'ALL';
+let currentLogsYearLevelFilter = 'ALL';
 let currentStudentStatusFilter = 'ALL';
 let currentStudentSiteFilter = 'ALL';
+let currentStudentYearLevelFilter = 'ALL';
 let currentAbsenceStatusFilter = 'ALL';
 let currentAbsenceCourseFilter = 'ALL';
 let selectedReportCourse = 'ALL';
 let selectedReportStatus = 'ALL';
 let selectedReportSite = 'ALL';
+let selectedReportYearLevel = 'ALL';
 let cachedStudents = [];
 let cachedLogs = [];
 let cachedAbsences = [];
@@ -70,6 +73,7 @@ let currentJournalDateFilter = 'TODAY'; // Default to Today's data!
 let currentJournalCustomDate = '';
 let currentJournalStatusFilter = 'ALL';
 let currentJournalSiteFilter = 'ALL';
+let currentJournalYearLevelFilter = 'ALL';
 let currentActiveJournalId = null;
 let cachedSites = [];
 let cachedCourses = [];
@@ -311,6 +315,9 @@ function showAppShell() {
 }
 
 function switchTab(tabId) {
+  if (tabId === 'sites') {
+    tabId = 'overview';
+  }
   currentTab = tabId;
   document.querySelectorAll('.nav-item').forEach(el => {
     el.classList.toggle('active', el.getAttribute('data-tab') === tabId);
@@ -445,10 +452,12 @@ function updateCourseCounts(counts) {
 function handleStudentFilterChange() {
   const courseEl = document.getElementById('courseSelectFilter');
   const statusEl = document.getElementById('studentStatusSelectFilter');
+  const yearLevelEl = document.getElementById('studentYearLevelSelectFilter');
   const siteEl = document.getElementById('studentSiteSelectFilter');
 
   if (courseEl) currentCourseFilter = courseEl.value || 'ALL';
   if (statusEl) currentStudentStatusFilter = statusEl.value || 'ALL';
+  if (yearLevelEl) currentStudentYearLevelFilter = yearLevelEl.value || 'ALL';
   if (siteEl) currentStudentSiteFilter = siteEl.value || 'ALL';
 
   applyStudentFilters();
@@ -463,6 +472,14 @@ function applyStudentFilters() {
 
   if (currentStudentStatusFilter !== 'ALL') {
     filtered = filtered.filter(s => (s.status || '').toLowerCase() === currentStudentStatusFilter.toLowerCase());
+  }
+
+  if (currentStudentYearLevelFilter !== 'ALL') {
+    filtered = filtered.filter(s => {
+      const sLvl = (s.year_level || '').toString().trim().replace(/[^0-9]/g, '');
+      const fLvl = currentStudentYearLevelFilter.toString().trim().replace(/[^0-9]/g, '');
+      return sLvl === fLvl || (s.year_level || '').toString().toLowerCase().includes(currentStudentYearLevelFilter.toString().toLowerCase());
+    });
   }
 
   if (currentStudentSiteFilter !== 'ALL') {
@@ -495,12 +512,23 @@ function getCourseBadgeClass(courseCode) {
   return 'badge-navy';
 }
 
+function formatYearLevelDisplay(val) {
+  if (!val) return '4th Year';
+  const str = val.toString().trim();
+  const numOnly = str.replace(/[^0-9]/g, '');
+  if (numOnly === '1') return '1st Year';
+  if (numOnly === '2') return '2nd Year';
+  if (numOnly === '3') return '3rd Year';
+  if (numOnly === '4') return '4th Year';
+  return str.length > 0 ? str : '4th Year';
+}
+
 function renderStudentsTable(students) {
   const tbody = document.getElementById('studentsTableBody');
   if (!tbody) return;
 
   if (students.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2rem;">No student interns enrolled in this course category.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2rem;">No students enrolled in this course category.</td></tr>`;
     return;
   }
 
@@ -517,12 +545,14 @@ function renderStudentsTable(students) {
           </div>
         </td>
         <td>
-          <div><span class="badge ${courseBadge}">${escapeHtml(s.course_code)}</span></div>
+          <div>
+            <span class="badge ${courseBadge}">${escapeHtml(s.course_code)}</span>
+          </div>
           <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">${escapeHtml(s.course_name)}</div>
         </td>
         <td>
-          <div style="font-weight: 600;">${escapeHtml(s.site_name)}</div>
-          <div style="font-size: 0.75rem; color: var(--text-muted);">${s.ojt_no} &bull; ${escapeHtml(s.site_location)}</div>
+          <div style="font-weight: 700; color: var(--navy-primary); font-size: 0.95rem;">${formatYearLevelDisplay(s.year_level)}</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem;">Undergraduate Student</div>
         </td>
         <td style="width: 180px;">
           <div class="progress-container">
@@ -703,7 +733,13 @@ function handleLogsStatusFilterChange(val) {
   applyLogsFilters();
 }
 
+function handleLogsYearLevelFilterChange(val) {
+  currentLogsYearLevelFilter = val;
+  applyLogsFilters();
+}
+
 function handleLogsSiteFilterChange(val) {
+  currentLogsYearLevelFilter = val;
   currentLogsSiteFilter = val;
   applyLogsFilters();
 }
@@ -727,6 +763,7 @@ function resetLogsFilters() {
   currentLogsCustomDate = '';
   currentLogsStatusFilter = 'ALL';
   currentLogsSiteFilter = 'ALL';
+  currentLogsYearLevelFilter = 'ALL';
   currentLogsCourseFilter = 'ALL';
 
   const dateSelect = document.getElementById('logsDateSelectFilter');
@@ -736,6 +773,9 @@ function resetLogsFilters() {
 
   const statusSelect = document.getElementById('logsStatusSelectFilter');
   if (statusSelect) statusSelect.value = 'ALL';
+
+  const yearSelect = document.getElementById('logsYearLevelSelectFilter');
+  if (yearSelect) yearSelect.value = 'ALL';
 
   const siteSelect = document.getElementById('logsSiteSelectFilter');
   if (siteSelect) siteSelect.value = 'ALL';
@@ -849,7 +889,16 @@ function applyLogsFilters(searchQuery = null) {
       if (l.status !== 'Rejected') return false;
     }
 
-    // 3. Partner Facility Filter
+    // 3. Year Level Filter
+    if (currentLogsYearLevelFilter !== 'ALL') {
+      const fLvl = currentLogsYearLevelFilter.toString().trim().replace(/[^0-9]/g, '');
+      const lLvl = (l.year_level || '').toString().trim().replace(/[^0-9]/g, '');
+      if (lLvl !== fLvl && !(l.year_level || '').toString().toLowerCase().includes(currentLogsYearLevelFilter.toLowerCase())) {
+        return false;
+      }
+    }
+
+    // Partner Facility Filter (fallback if active)
     if (currentLogsSiteFilter !== 'ALL') {
       if (!l.site_name || l.site_name.trim().toLowerCase() !== currentLogsSiteFilter.trim().toLowerCase()) {
         return false;
@@ -897,7 +946,7 @@ function renderLogsTable(logs) {
               No Attendance Logs Recorded for Today (${todayFormatted})
             </div>
             <p style="font-size: 0.85rem; color: #64748b; max-width: 450px; margin: 0 auto;">
-              Interns may not have clocked in yet today, or may be assigned to afternoon shifts.
+              Students may not have clocked in yet today, or may be assigned to afternoon shifts.
             </p>
           </td>
         </tr>`;
@@ -910,7 +959,7 @@ function renderLogsTable(logs) {
               No Logs Match Current Filter Criteria
             </div>
             <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 1.25rem;">
-              Try adjusting your Date, Verification Status, Partner Facility, or Program filters.
+              Try adjusting your Date, Verification Status, Year Level, or Program filters.
             </p>
             <button type="button" class="btn btn-outline" style="font-size: 0.82rem; padding: 0.45rem 1rem;" onclick="resetLogsFilters()">
               ↺ Reset All Filters
@@ -1280,7 +1329,13 @@ function handleJournalStatusFilterChange(val) {
   applyJournalFilters();
 }
 
+function handleJournalYearLevelFilterChange(val) {
+  currentJournalYearLevelFilter = val;
+  applyJournalFilters();
+}
+
 function handleJournalSiteFilterChange(val) {
+  currentJournalYearLevelFilter = val;
   currentJournalSiteFilter = val;
   applyJournalFilters();
 }
@@ -1295,12 +1350,15 @@ function resetJournalFilters() {
   currentJournalCustomDate = '';
   currentJournalStatusFilter = 'ALL';
   currentJournalSiteFilter = 'ALL';
+  currentJournalYearLevelFilter = 'ALL';
   currentJournalCourseFilter = 'ALL';
 
   const customInput = document.getElementById('journalCustomDateInput');
   if (customInput) customInput.value = getLocalDateISO();
   const statusSelect = document.getElementById('journalStatusSelectFilter');
   if (statusSelect) statusSelect.value = 'ALL';
+  const yearSelect = document.getElementById('journalYearLevelSelectFilter');
+  if (yearSelect) yearSelect.value = 'ALL';
   const siteSelect = document.getElementById('journalSiteSelectFilter');
   if (siteSelect) siteSelect.value = 'ALL';
   const courseSelect = document.getElementById('journalCourseSelectFilter');
@@ -1390,7 +1448,14 @@ function applyJournalFilters(searchQuery = null) {
       if ((j.dean_status || 'Pending') !== currentJournalStatusFilter) return false;
     }
 
-    // 3. Site Filter
+    // 3. Year Level Filter
+    if (currentJournalYearLevelFilter !== 'ALL') {
+      const fLvl = currentJournalYearLevelFilter.toString().trim().replace(/[^0-9]/g, '');
+      const jLvl = (j.year_level || '').toString().trim().replace(/[^0-9]/g, '');
+      if (jLvl !== fLvl && !(j.year_level || '').toString().toLowerCase().includes(currentJournalYearLevelFilter.toLowerCase())) return false;
+    }
+
+    // Site Filter (fallback if set)
     if (currentJournalSiteFilter !== 'ALL') {
       if ((j.site_name || '').toLowerCase() !== currentJournalSiteFilter.toLowerCase()) return false;
     }
@@ -1445,7 +1510,7 @@ function renderJournalsTable(journals) {
               No Daily Journals Match Filter Criteria
             </div>
             <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 1.25rem;">
-              Try adjusting your Date, Review Status, Partner Facility, or Program filters.
+              Try adjusting your Date, Review Status, Year Level, or Program filters.
             </p>
             <button type="button" class="btn btn-outline" style="font-size: 0.82rem; padding: 0.45rem 1rem;" onclick="resetJournalFilters()">
               Reset All Filters
@@ -1524,7 +1589,7 @@ function openJournalModal(journalId) {
   subtitle.textContent = `${j.date} • ${j.student_number} • ${j.course_code} • ${j.site_name}`;
 
   content.innerHTML = `
-    <!-- Intern & Shift Information Banner -->
+    <!-- Student & Shift Information Banner -->
     <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-canvas); border: 1px solid var(--border-light); padding: 0.75rem 1rem; border-radius: var(--radius-sm); flex-wrap: wrap; gap: 0.5rem;">
       <div>
         <div style="font-size: 0.88rem; font-weight: 800; color: var(--navy-primary);">${escapeHtml(j.full_name)} (${escapeHtml(j.student_number)})</div>
@@ -1589,9 +1654,9 @@ function openJournalModal(journalId) {
 
       <div>
         <label style="display: block; font-size: 0.74rem; font-weight: 700; color: #1e3a8a; margin-bottom: 0.25rem;">Dean Feedback / Guidance for Student:</label>
-        <textarea id="modalJournalFeedbackText" class="form-control" rows="3" placeholder="Type constructive feedback, guidance, or words of encouragement for this intern..." style="font-size: 0.82rem; border-color: #93c5fd; resize: vertical;">${escapeHtml(j.dean_feedback || '')}</textarea>
+        <textarea id="modalJournalFeedbackText" class="form-control" rows="3" placeholder="Type constructive feedback, guidance, or words of encouragement for this student..." style="font-size: 0.82rem; border-color: #93c5fd; resize: vertical;">${escapeHtml(j.dean_feedback || '')}</textarea>
         <small style="display: block; color: #64748b; font-size: 0.72rem; margin-top: 0.25rem;">
-          💡 This feedback is immediately visible to the intern inside their mobile app.
+          💡 This feedback is immediately visible to the student inside their mobile app.
         </small>
       </div>
     </div>
@@ -1758,7 +1823,7 @@ function renderSitesTable(sites) {
       <td style="font-weight: 700; color: var(--navy-primary);">${st.site_code}</td>
       <td style="font-weight: 700;">${escapeHtml(st.site_name)}</td>
       <td>${escapeHtml(st.location)}</td>
-      <td><span class="badge badge-success">${st.assigned_interns} Active Interns</span></td>
+      <td><span class="badge badge-success">${st.assigned_interns} Active Students</span></td>
       <td>
         <button class="btn btn-outline" onclick='openEditSiteModal(${JSON.stringify(st).replace(/'/g, "&apos;")})'>Edit Partner</button>
         <button class="btn btn-danger" style="margin-left: 0.35rem; padding: 0.4rem 0.75rem; font-size: 0.8rem;" onclick="deletePartnerSite(${st.site_id}, '${escapeHtml(st.site_name).replace(/'/g, "\\'")}', ${st.assigned_interns})">Delete</button>
@@ -1805,7 +1870,7 @@ async function handleModalDeleteSite() {
 
 async function deletePartnerSite(siteId, siteName, assignedInterns) {
   if (assignedInterns > 0) {
-    alert(`Cannot delete '${siteName}' because it currently has ${assignedInterns} active assigned intern(s). Please reassign those interns to another facility first.`);
+    alert(`Cannot delete '${siteName}' because it currently has ${assignedInterns} active assigned student(s). Please reassign those students to another facility first.`);
     return;
   }
 
@@ -1873,6 +1938,11 @@ function filterReportByStatus(status) {
   renderComplianceSummary();
 }
 
+function filterReportByYearLevel(yearLevel) {
+  selectedReportYearLevel = yearLevel || 'ALL';
+  renderComplianceSummary();
+}
+
 function filterReportBySite(siteName) {
   selectedReportSite = siteName || 'ALL';
   renderComplianceSummary();
@@ -1902,6 +1972,14 @@ function getReportStudents() {
 
   if (selectedReportStatus !== 'ALL') {
     filtered = filtered.filter(s => (s.status || '').toLowerCase() === selectedReportStatus.toLowerCase());
+  }
+
+  if (selectedReportYearLevel !== 'ALL') {
+    filtered = filtered.filter(s => {
+      const sLvl = (s.year_level || '').toString().trim().replace(/[^0-9]/g, '');
+      const fLvl = selectedReportYearLevel.toString().trim().replace(/[^0-9]/g, '');
+      return sLvl === fLvl || (s.year_level || '').toString().toLowerCase().includes(selectedReportYearLevel.toLowerCase());
+    });
   }
 
   if (selectedReportSite !== 'ALL') {
@@ -1951,14 +2029,17 @@ function renderComplianceSummary() {
           </select>
         </div>
 
-        <!-- Partner Facility -->
+        <!-- Year Level -->
         <div>
-          <label for="reportSiteFilterSelect" style="display: block; font-size: 0.73rem; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.35rem;">
-            Partner Facility
+          <label for="reportYearLevelFilterSelect" style="display: block; font-size: 0.73rem; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.35rem;">
+            Year Level
           </label>
-          <select id="reportSiteFilterSelect" class="form-control" style="width: 100%; height: 38px; font-size: 0.83rem; font-weight: 600; color: #1e293b; border: 1px solid #cbd5e1; border-radius: 6px; padding: 0 0.75rem;" onchange="filterReportBySite(this.value)">
-            <option value="ALL">All Partner Facilities</option>
-            ${getReportSiteOptionsHtml()}
+          <select id="reportYearLevelFilterSelect" class="form-control" style="width: 100%; height: 38px; font-size: 0.83rem; font-weight: 600; color: #1e293b; border: 1px solid #cbd5e1; border-radius: 6px; padding: 0 0.75rem;" onchange="filterReportByYearLevel(this.value)">
+            <option value="ALL" ${selectedReportYearLevel === 'ALL' ? 'selected' : ''}>All Year Levels</option>
+            <option value="1" ${selectedReportYearLevel === '1' ? 'selected' : ''}>1st Year</option>
+            <option value="2" ${selectedReportYearLevel === '2' ? 'selected' : ''}>2nd Year</option>
+            <option value="3" ${selectedReportYearLevel === '3' ? 'selected' : ''}>3rd Year</option>
+            <option value="4" ${selectedReportYearLevel === '4' ? 'selected' : ''}>4th Year</option>
           </select>
         </div>
 
@@ -1980,7 +2061,7 @@ function renderComplianceSummary() {
     <!-- Executive KPI Grid -->
     <div class="kpi-grid" style="grid-template-columns: repeat(3, 1fr);">
       <div class="kpi-card">
-        <div class="kpi-title">Selected Program Interns</div>
+        <div class="kpi-title">Selected Program Students</div>
         <div class="kpi-value-row">
           <div class="kpi-value">${total}</div>
           <span class="kpi-badge gold">${selectedReportCourse === 'ALL' ? 'All Programs' : selectedReportCourse}</span>
@@ -2015,7 +2096,7 @@ function renderComplianceSummary() {
               <th>Student Name</th>
               <th>Student #</th>
               <th>Course</th>
-              <th>Partner Facility</th>
+              <th>Year Level</th>
               <th>Hours Rendered</th>
               <th>Required Goal</th>
               <th>Compliance %</th>
@@ -2024,7 +2105,7 @@ function renderComplianceSummary() {
           </thead>
           <tbody>
             ${targetStudents.length === 0 ? `
-              <tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">No student interns enrolled in this course category.</td></tr>
+              <tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">No students enrolled in this course category.</td></tr>
             ` : targetStudents.map(s => {
     const courseBadge = getCourseBadgeClass(s.course_code);
     return `
@@ -2032,7 +2113,7 @@ function renderComplianceSummary() {
                   <td style="font-weight:700;">${escapeHtml(s.full_name)}</td>
                   <td>${s.student_number}</td>
                   <td><span class="badge ${courseBadge}">${s.course_code}</span></td>
-                  <td>${escapeHtml(s.site_name)}</td>
+                  <td style="font-weight: 600;">Year ${escapeHtml(s.year_level || '4')}</td>
                   <td style="font-weight:700;">${s.rendered_hours}h ${s.rendered_minutes}m</td>
                   <td>${s.required_hours}h</td>
                   <td>${s.progress_percentage}%</td>
@@ -2111,8 +2192,8 @@ async function generatePDFReport() {
         <img src="${logoUrl}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: contain; flex-shrink: 0;" alt="SBC Logo" onerror="this.style.display='none';">
         <div>
           <div style="font-size: 14px; font-weight: 800; color: #002d56; text-transform: uppercase; letter-spacing: 0.3px; margin: 0;">Southern Baptist College</div>
-          <div style="font-size: 9.5px; font-weight: 600; color: #475569; margin-top: 2px;">Office of Student Affairs &amp; Internship Coordination</div>
-          <div style="font-size: 10.5px; font-weight: 700; color: #d97706; text-transform: uppercase; margin-top: 2px;">Institutional OJT Compliance &amp; Attendance Report</div>
+          <div style="font-size: 9.5px; font-weight: 600; color: #475569; margin-top: 2px;">Office of Student Affairs &amp; Academic Records</div>
+          <div style="font-size: 10.5px; font-weight: 700; color: #d97706; text-transform: uppercase; margin-top: 2px;">Institutional Student Attendance &amp; Records Report</div>
         </div>
       </div>
       <div style="text-align: right; font-size: 9px; color: #64748b; flex-shrink: 0; padding-left: 10px;">
@@ -2287,7 +2368,7 @@ async function downloadStudentDtrPdf(studentId) {
         <img src="${logoUrl}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: contain; flex-shrink: 0;" alt="SBC Logo" onerror="this.style.display='none';">
         <div>
           <div style="font-size: 14px; font-weight: 800; color: #002d56; text-transform: uppercase; letter-spacing: 0.3px; margin: 0;">Southern Baptist College</div>
-          <div style="font-size: 9.5px; font-weight: 600; color: #475569; margin-top: 2px;">Office of Student Affairs &amp; Internship Coordination</div>
+          <div style="font-size: 9.5px; font-weight: 600; color: #475569; margin-top: 2px;">Office of Student Affairs &amp; Academic Records</div>
           <div style="font-size: 10.5px; font-weight: 700; color: #047857; text-transform: uppercase; margin-top: 2px;">Official Daily Time Record (DTR)</div>
         </div>
       </div>
@@ -2300,7 +2381,7 @@ async function downloadStudentDtrPdf(studentId) {
     <!-- Student Credentials Box -->
     <div style="display: flex; gap: 8px; background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 7px 10px; border-radius: 5px; margin-bottom: 10px;">
       <div style="flex: 1; font-size: 9.5px;">
-        <div><strong style="color: #002d56;">Intern Name:</strong> ${escapeHtml(s.full_name)}</div>
+        <div><strong style="color: #002d56;">Student Name:</strong> ${escapeHtml(s.full_name)}</div>
         <div style="margin-top: 2px;"><strong style="color: #002d56;">Student Number:</strong> ${escapeHtml(s.student_number)}</div>
         <div style="margin-top: 2px;"><strong style="color: #002d56;">Academic Program:</strong> ${escapeHtml(s.course_code)} — ${escapeHtml(s.course_name)}</div>
       </div>
@@ -2346,12 +2427,12 @@ async function downloadStudentDtrPdf(studentId) {
       <div style="width: 44%; text-align: center;">
         <div style="border-bottom: 1.5px solid #002d56; height: 26px; margin-bottom: 5px;"></div>
         <p style="font-weight: 700; font-size: 10px; color: #002d56; margin: 0;">${escapeHtml(s.full_name)}</p>
-        <p style="font-size: 8.5px; color: #64748b; margin: 2px 0 0 0;">Student Intern Signature</p>
+        <p style="font-size: 8.5px; color: #64748b; margin: 2px 0 0 0;">Student Signature</p>
       </div>
       <div style="width: 44%; text-align: center;">
         <div style="border-bottom: 1.5px solid #002d56; height: 26px; margin-bottom: 5px;"></div>
         <p style="font-weight: 700; font-size: 10px; color: #002d56; margin: 0;">${escapeHtml(deanName)}</p>
-        <p style="font-size: 8.5px; color: #64748b; margin: 2px 0 0 0;">Dean / OJT Coordinator</p>
+        <p style="font-size: 8.5px; color: #64748b; margin: 2px 0 0 0;">Dean / Academic Records</p>
       </div>
     </div>
 
@@ -2434,9 +2515,9 @@ function openPrintWindowFallback(innerHtml, title) {
 function exportCSVReport() {
   const targetStudents = getReportStudents();
   if (targetStudents.length === 0) return alert('No data to export.');
-  let csv = 'Student Name,Student Number,Course,Partner Facility,Hours Rendered,Target Goal,Progress %,Status\n';
+  let csv = 'Student Name,Student Number,Course,Year Level,Hours Rendered,Target Goal,Progress %,Status\n';
   targetStudents.forEach(s => {
-    csv += `"${s.full_name}","${s.student_number}","${s.course_code}","${s.site_name}","${s.rendered_hours}h ${s.rendered_minutes}m","${s.required_hours}h","${s.progress_percentage}%","${s.status}"\n`;
+    csv += `"${s.full_name}","${s.student_number}","${s.course_code}","Year ${s.year_level || '4'}","${s.rendered_hours}h ${s.rendered_minutes}m","${s.required_hours}h","${s.progress_percentage}%","${s.status}"\n`;
   });
 
   const blob = new Blob([csv], { type: 'text/csv' });
@@ -2797,7 +2878,7 @@ async function reviewAttendanceLog(attendanceId, action, shift = 'morning') {
     defaultPrompt = (shift === 'morning' ? 'Morning shift verified and confirmed' : (shift === 'afternoon' ? 'Afternoon shift verified and confirmed' : 'Attendance log confirmed by Dean of Student Affairs'));
   }
 
-  const remarks = prompt(`[${shiftLabel}] Enter Dean Administrative Remarks (${action}):\n(Type the exact remark you want to record and show to the student intern)`, defaultPrompt);
+  const remarks = prompt(`[${shiftLabel}] Enter Dean Administrative Remarks (${action}):\n(Type the exact remark you want to record and show to the student)`, defaultPrompt);
   if (remarks === null) return; // Dean clicked cancel
 
   try {
@@ -2838,7 +2919,7 @@ async function openTagGroupModal(attendanceId, preferredShift = null) {
   currentTagAttendanceId = attendanceId;
   tagModalActivePhotos = log.photos || [];
 
-  // 1. Ensure cachedStudents is fully loaded with all enrolled student interns
+  // 1. Ensure cachedStudents is fully loaded with all enrolled students
   if (!cachedStudents || cachedStudents.length === 0 || !cachedStudents.find(s => Number(s.student_id) === Number(log.student_id))) {
     try {
       const res = await fetch(API_BASE + 'admin_get_students.php?all=1');
@@ -2892,7 +2973,7 @@ async function openTagGroupModal(attendanceId, preferredShift = null) {
   // Set Subtitle
   const subEl = document.getElementById('tagModalSubtitle');
   if (subEl) {
-    subEl.textContent = `Submitted by ${log.full_name} (${log.course_code || 'Intern'}) • Date: ${log.date}`;
+    subEl.textContent = `Submitted by ${log.full_name} (${log.course_code || 'Student'}) • Date: ${log.date}`;
   }
 
   // 2. Build 4 photo slots (Morning In, Morning Out, Afternoon In, Afternoon Out)
@@ -2909,9 +2990,8 @@ async function openTagGroupModal(attendanceId, preferredShift = null) {
   if (searchInput) searchInput.value = '';
   const courseFilter = document.getElementById('tagCourseFilterSelect');
   if (courseFilter) courseFilter.value = 'ALL';
-  const siteFilter = document.getElementById('tagSiteFilterSelect');
-  if (siteFilter) siteFilter.value = 'ALL';
-  populateTagSiteDropdown('ALL');
+  const yearFilter = document.getElementById('tagYearLevelFilterSelect') || document.getElementById('tagSiteFilterSelect');
+  if (yearFilter) yearFilter.value = 'ALL';
 
   // 6. Render Student Roster with student names
   renderTagStudentList();
@@ -3240,8 +3320,8 @@ function renderTagStudentList() {
   const q = searchInput ? searchInput.value.toLowerCase().trim() : '';
   const courseFilter = document.getElementById('tagCourseFilterSelect');
   const courseQ = courseFilter ? courseFilter.value : 'ALL';
-  const siteFilter = document.getElementById('tagSiteFilterSelect');
-  const siteQ = siteFilter ? siteFilter.value : 'ALL';
+  const yearFilter = document.getElementById('tagYearLevelFilterSelect') || document.getElementById('tagSiteFilterSelect');
+  const yearQ = yearFilter ? yearFilter.value : 'ALL';
 
   const log = (cachedLogs || []).find(x => x.attendance_id == currentTagAttendanceId);
   let submitterId = log ? Number(log.student_id) : 0;
@@ -3265,6 +3345,7 @@ function renderTagStudentList() {
       full_name: log.full_name,
       student_number: log.student_number,
       course_code: log.course_code,
+      year_level: log.year_level || '4',
       site_name: log.site_name
     });
   }
@@ -3278,7 +3359,11 @@ function renderTagStudentList() {
 
   const filtered = sortedStudents.filter(s => {
     if (courseQ !== 'ALL' && s.course_code !== courseQ) return false;
-    if (siteQ !== 'ALL' && (s.site_name || '').trim() !== siteQ) return false;
+    if (yearQ !== 'ALL') {
+      const sLvl = (s.year_level || '').toString().trim().replace(/[^0-9]/g, '');
+      const fLvl = yearQ.toString().trim().replace(/[^0-9]/g, '');
+      if (sLvl !== fLvl && !(s.year_level || '').toString().toLowerCase().includes(yearQ.toLowerCase())) return false;
+    }
     if (q) {
       const match = (s.full_name && s.full_name.toLowerCase().includes(q)) ||
         (s.student_number && s.student_number.toLowerCase().includes(q)) ||
@@ -3292,14 +3377,14 @@ function renderTagStudentList() {
   // Update visible count label
   const visibleBadge = document.getElementById('tagVisibleCountBadge');
   if (visibleBadge) {
-    visibleBadge.textContent = `Showing ${filtered.length} of ${sortedStudents.length} intern${sortedStudents.length === 1 ? '' : 's'}`;
+    visibleBadge.textContent = `Showing ${filtered.length} of ${sortedStudents.length} student${sortedStudents.length === 1 ? '' : 's'}`;
   }
 
   if (filtered.length === 0) {
     tbody.innerHTML = `
       <tr>
         <td colspan="5" style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted); font-size: 0.85rem;">
-          ${q ? `No student interns match "${escapeHtml(q)}"` : 'No student interns enrolled.'}
+          ${q ? `No students match "${escapeHtml(q)}"` : 'No students enrolled.'}
         </td>
       </tr>
     `;
@@ -3389,8 +3474,8 @@ function selectAllFilteredStudents(selectAll) {
   const q = searchInput ? searchInput.value.toLowerCase().trim() : '';
   const courseFilter = document.getElementById('tagCourseFilterSelect');
   const courseQ = courseFilter ? courseFilter.value : 'ALL';
-  const siteFilter = document.getElementById('tagSiteFilterSelect');
-  const siteQ = siteFilter ? siteFilter.value : 'ALL';
+  const yearFilter = document.getElementById('tagYearLevelFilterSelect') || document.getElementById('tagSiteFilterSelect');
+  const yearQ = yearFilter ? yearFilter.value : 'ALL';
 
   const log = (cachedLogs || []).find(x => x.attendance_id == currentTagAttendanceId);
   let submitterId = log ? Number(log.student_id) : 0;
@@ -3401,7 +3486,11 @@ function selectAllFilteredStudents(selectAll) {
 
   const filtered = (cachedStudents || []).filter(s => {
     if (courseQ !== 'ALL' && s.course_code !== courseQ) return false;
-    if (siteQ !== 'ALL' && (s.site_name || '').trim() !== siteQ) return false;
+    if (yearQ !== 'ALL') {
+      const sLvl = (s.year_level || '').toString().trim().replace(/[^0-9]/g, '');
+      const fLvl = yearQ.toString().trim().replace(/[^0-9]/g, '');
+      if (sLvl !== fLvl && !(s.year_level || '').toString().toLowerCase().includes(yearQ.toLowerCase())) return false;
+    }
     if (q) {
       const match = (s.full_name && s.full_name.toLowerCase().includes(q)) ||
         (s.student_number && s.student_number.toLowerCase().includes(q)) ||
@@ -3464,7 +3553,7 @@ async function submitTagGroupAttendance() {
   }
 
   if (taggedStudentIds.size === 0) {
-    alert('Please select at least one student intern present in the photo.');
+    alert('Please select at least one student present in the photo.');
     return;
   }
 
@@ -3576,7 +3665,7 @@ async function openStudentDrawer(studentId) {
     </div>
 
     <div style="border: 1px solid var(--border-light); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.25rem;">
-      <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">${s.required_hours}-Hour Internship Progress</div>
+      <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">${s.required_hours}-Hour Goal Progress</div>
       <div class="progress-container" style="margin-bottom: 0.6rem;">
         <div class="progress-bar-bg" style="height: 10px; background-color: var(--border-light);">
           <div class="progress-bar-fill" style="width: ${s.progress_percentage}%; height: 100%; background-color: ${s.progress_percentage >= 100 ? '#2e7d32' : 'var(--gold-accent)'};"></div>
@@ -3596,7 +3685,7 @@ async function openStudentDrawer(studentId) {
           <div>
             <div style="font-weight: 700; color: var(--navy-primary); font-size: 0.88rem;">Goal Hours Completed! 🏆</div>
             <div style="font-size: 0.78rem; color: #4a5568; margin-top: 0.2rem; line-height: 1.35;">
-              Congratulations! This intern has successfully completed their required ${s.required_hours}-hour internship goal requirement with dedication and excellence.
+              Congratulations! This student has successfully completed their required ${s.required_hours}-hour goal requirement with dedication and excellence.
             </div>
           </div>
         </div>
@@ -3666,7 +3755,7 @@ async function openStudentDrawer(studentId) {
 
     <!-- Dean Controls: Custom Hours -->
     <div style="border: 1px solid var(--border-light); padding: 1rem; border-radius: var(--radius-sm); background: var(--bg-canvas);">
-      <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.6rem;">⏱️ Override Required Internship Hours</div>
+      <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.6rem;">⏱️ Override Required Hours</div>
       <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.6rem;">
         ${[240, 300, 480, 500, 600].map(h => `<button class="btn-preset-chip ${s.required_hours == h ? 'active' : ''}" onclick="setDrawerPresetHours(${h})">${h}h</button>`).join('')}
       </div>
@@ -3805,7 +3894,7 @@ function renderCoursesTable(courses) {
             ⏱ ${c.required_hours} hrs
           </span>
         </td>
-        <td><span class="badge badge-success">${c.enrolled_students} Intern(s)</span></td>
+        <td><span class="badge badge-success">${c.enrolled_students} Student(s)</span></td>
         <td>
           <button class="btn btn-outline" style="margin-right:0.4rem;" onclick='openEditCourseModal(${JSON.stringify(c).replace(/'/g, "&apos;")})'>Edit</button>
           <button class="btn btn-danger" style="padding:0.4rem 0.75rem;font-size:0.8rem;" onclick="deleteCourse(${c.course_id}, '${escapeHtml(c.course_code)}', ${c.enrolled_students})">Delete</button>
@@ -3863,7 +3952,7 @@ async function handleModalDeleteCourse() {
 
 async function deleteCourse(courseId, courseCode, enrolledCount) {
   if (enrolledCount > 0) {
-    alert(`Cannot delete '${courseCode}' — it currently has ${enrolledCount} active intern(s) enrolled. Please reassign all students first.`);
+    alert(`Cannot delete '${courseCode}' — it currently has ${enrolledCount} active student(s) enrolled. Please reassign all students first.`);
     return;
   }
   if (!confirm(`Permanently delete the '${courseCode}' academic program?`)) return;
@@ -4284,7 +4373,7 @@ function openRfidMappingModal(studentId, fullName, studentNumber, currentRfid, c
   const msgEl = document.getElementById('rfidModalStatusMsg');
 
   if (nameEl) nameEl.textContent = fullName;
-  if (detailsEl) detailsEl.textContent = `${studentNumber} • ${courseCode || 'OJT Intern'}${currentRfid ? ` (Current RFID: ${currentRfid})` : ' (No RFID Mapped)'}`;
+  if (detailsEl) detailsEl.textContent = `${studentNumber} • ${courseCode || 'Student'}${currentRfid ? ` (Current RFID: ${currentRfid})` : ' (No RFID Mapped)'}`;
   if (inputEl) {
     inputEl.value = currentRfid || '';
     setTimeout(() => {

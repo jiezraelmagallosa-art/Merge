@@ -9,7 +9,7 @@ class MotivationalMessages {
     "Don't be late! Great start to your day, keep that momentum going!",
     "Smile! You're going to achieve great things today.",
     "New day, new learnings. I-galing mo mamaya!",
-    "Mabuhay ang pursugidong intern! Aja!",
+    "Mabuhay ang pursugidong estudyante! Aja!",
     "Focus, commit, and succeed. Ready ka na dyan!",
     "Laging dalhin ang ngiti at talino. Have a great shift ahead!",
     "Erased ang antok, ready na mag-work! Let's go!",
@@ -22,7 +22,7 @@ class MotivationalMessages {
     "Pumasok na may ngiti, magtrabaho nang may puso.",
     "Be unstoppable today! Kayanin ang bawat hamon.",
     "Ready, set, grow! Marami ka na namang matututunan ngayon.",
-    "Ang maagang intern ay laging pinagpala. Padayon!",
+    "Ang maagang estudyante ay laging pinagpala. Padayon!",
     "Let your passion drive your performance today!",
     "Welcome back! Handang-handa na ang iyong workspace para sa'yo.",
     "Keep your head up and your goals clear. Good shift!",
@@ -43,7 +43,7 @@ class MotivationalMessages {
     "Oras na para gumawa ng magandang marka ngayon.",
     "Ang galing ng timing mo! Tuloy-tuloy lang ang swerte.",
     "Ready to learn, ready to lead. Let's do this!",
-    "Ipakita ang tunay na lakas ng isang intern ng SBC.",
+    "Ipakita ang tunay na lakas ng isang estudyante ng SBC.",
     "May pag-asa sa taong masipag. Magandang shift sa'yo!",
     "Keep your focus sharp and your heart positive.",
     "Ngayon ang tamang araw para mag-level up!",
@@ -66,7 +66,7 @@ class MotivationalMessages {
     "Proud of your dedication today. Rest up!",
     "Great job finishing your tasks! Ingat sa biyahe pauwi.",
     "Na-survive mo ang araw na ito nang may galing. See you next time!",
-    "Isa kang mabuting halimbawa ng masipag na intern. Rest well!",
+    "Isa kang mabuting halimbawa ng masipag na estudyante. Rest well!",
     "Oras na para magpahinga. You earned this break!",
     "Napakahusay ng ipinakita mo ngayong araw. Good job!",
     "Tapos na ang laban para sa araw na ito. Time to chill!",
@@ -80,7 +80,7 @@ class MotivationalMessages {
     "Ang galing ng performance mo kanina! Magpahinga na.",
     "Nagbunga ang pagod mo ngayon. Uwi na at maghapunan!",
     "Isa kang rockstar ngayong araw! Paalam at ingat.",
-    "Hanggang dito na muna. Ingat sa pag-uwi, intern!",
+    "Hanggang dito na muna. Ingat sa pag-uwi, student!",
     "Magandang pahinga sa'yo! You did an amazing job.",
     "Balik-enerhiya bukas! Ginalingan mo sobra ngayon.",
     "Na-i-pasa mo ang araw na ito nang may flying colors!",
@@ -156,7 +156,7 @@ class MotivationalMessages {
     "Napagod ka man kanina, worth it naman! Kain na para sa hapon.",
     "Excellent morning work! I-enjoy ang break at maghanda sa hapon.",
     "Keep shining! Mag-lunch na para hindi mapagod ang bida ngayong hapon.",
-    "Isa kang magandang halimbawa ng masipag na intern/estudyante. See you later!",
+    "Isa kang magandang halimbawa ng masipag na estudyante. See you later!",
     "Relax, eat well, and prepare to conquer the afternoon shift.",
     "Umagang puno ng aral at gawa. Pahinga muna para mas lalong gumaling mamaya!",
     "Done with the morning block! Mag-recharge na para sa hapon.",
@@ -164,10 +164,10 @@ class MotivationalMessages {
   ];
 
   static const List<String> completionMessages = [
-    "🎉 Congratulations! You have successfully completed your 480 internship goal hours! SBC is proud of your dedication and hard work!",
-    "🏆 Goal Achieved! You've finished your required internship hours. May this accomplishment open great opportunities for your career!",
+    "🎉 Congratulations! You have successfully completed your 480 goal hours! SBC is proud of your dedication and hard work!",
+    "🏆 Goal Achieved! You've finished your required goal hours. May this accomplishment open great opportunities for your career!",
     "🌟 Saludo sa iyong dedikasyon! Natapos mo na ang iyong goal hours. Keep shining and reaching for your dreams!",
-    "🎓 Mission Accomplished! Congratulations on completing your OJT hours with excellence and perseverance!"
+    "🎓 Mission Accomplished! Congratulations on completing your required hours with excellence and perseverance!"
   ];
 
   static String getRandomCompletionMessage() {
@@ -365,7 +365,7 @@ class MotivationalMessages {
               ),
               const SizedBox(height: 4),
               const Text(
-                'Internship Goal Hours Completed!',
+                'Required Goal Hours Completed!',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,

@@ -1,4 +1,4 @@
-﻿{% extends "layout/student_base.html" %}
+{% extends "layout/student_base.html" %}
 
 {% block title %}
 Student Inquiry
@@ -18,15 +18,44 @@ Student Inquiry
                     <h3 class="fw-bold">Please Tap Your Student ID</h3>
                     <p id="status" class="text-muted fs-5">Waiting for RFID card...</p>
                     <input type="text" id="student_id" autocomplete="off" style="position:absolute; left:-9999px; width:1px; height:1px; opacity:0;">
+
+                    <div class="mt-4 pt-4 border-top">
+                        <label for="manualStudentSearch" class="form-label text-muted small fw-bold text-uppercase">Or Search by Student ID / Number</label>
+                        <form id="manualSearchForm" class="d-flex justify-content-center gap-2 mx-auto" style="max-width: 420px;">
+                            <input type="text" id="manualStudentSearch" name="student_id" class="form-control" placeholder="Enter Student ID (e.g. 2026-0009)" required>
+                            <button type="submit" class="btn btn-primary px-4 fw-bold">Search</button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-
 <script>
 window.addEventListener("load", function() {
+    const manualForm = document.getElementById("manualSearchForm");
+    if (manualForm) {
+        manualForm.addEventListener("submit", function(e) {
+            e.preventDefault();
+            const sid = document.getElementById("manualStudentSearch").value.trim();
+            if (!sid) return;
+            fetch("/student-login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Accept": "application/json", "X-Requested-With": "XMLHttpRequest" },
+                body: JSON.stringify({ student_id: sid })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    window.location = data.redirect || "/student-dashboard";
+                } else {
+                    alert(data.message || "Student ID not found.");
+                }
+            })
+            .catch(() => alert("Error verifying student. Please try again."));
+        });
+    }
     const rfidInput = document.getElementById("student_id");
     const statusElement = document.getElementById("status");
     let scanBuffer = "";

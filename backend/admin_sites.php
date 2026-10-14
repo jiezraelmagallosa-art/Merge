@@ -40,7 +40,7 @@ try {
             if ($assigned_count > 0) {
                 echo json_encode([
                     "status" => "error",
-                    "message" => "Cannot delete facility because it currently has {$assigned_count} active assigned intern(s)."
+                    "message" => "Cannot delete facility because it currently has {$assigned_count} active assigned student(s)."
                 ]);
                 exit();
             }

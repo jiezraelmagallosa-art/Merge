@@ -29,7 +29,15 @@ $pass = isset($data['password']) ? trim($data['password']) : '';
 $course_id = isset($data['course_id']) ? intval($data['course_id']) : 1;
 $dean_id = isset($data['dean_id']) ? intval($data['dean_id']) : 0;
 
-// Auto-generate student number (e.g. 2026-0010) if not provided
+// Prioritize user's typed Student ID No.
+if (!empty($id_no) && empty($student_number)) {
+    $student_number = $id_no;
+}
+if (!empty($student_number) && empty($id_no)) {
+    $id_no = $student_number;
+}
+
+// Auto-generate student number (e.g. 2026-0010) only if not provided
 if (empty($student_number)) {
     $max_res = $conn->query("SELECT MAX(student_id) as max_id FROM student");
     $next_id = 1;
@@ -37,9 +45,6 @@ if (empty($student_number)) {
         $next_id = intval($row['max_id']) + 1;
     }
     $student_number = date("Y") . "-" . str_pad($next_id, 4, "0", STR_PAD_LEFT);
-}
-
-if (empty($id_no)) {
     $id_no = $student_number;
 }
 
@@ -102,21 +107,27 @@ $check_num->close();
 
 $course_id = isset($data['course_id']) ? intval($data['course_id']) : 1;
 $dean_id = isset($data['dean_id']) ? intval($data['dean_id']) : 0;
+$year_level = isset($data['year_level']) ? trim($data['year_level']) : '4';
+if (empty($year_level)) {
+    $year_level = '4';
+}
+
 $site_id = isset($data['site_id']) ? intval($data['site_id']) : (isset($data['site_id_selected']) ? intval($data['site_id_selected']) : 1);
 if ($site_id <= 0) {
     $site_id = 1;
 }
 
+$clean_year_level = preg_replace('/[^0-9]/', '', $year_level);
+if (empty($clean_year_level)) {
+    $clean_year_level = !empty($year_level) ? $year_level : '4';
+}
 
-$hashed_password = password_hash($pass, PASSWORD_DEFAULT);
-
-$stmt = $conn->prepare("INSERT INTO student (student_number, full_name, id_no, email, password, course_id, dean_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
-$stmt->bind_param("sssssii", $student_number, $full_name, $id_no, $email, $hashed_password, $course_id, $dean_id);
+$stmt = $conn->prepare("INSERT INTO student (student_number, full_name, id_no, email, password, course_id, dean_id, year_level) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+$stmt->bind_param("sssssiis", $student_number, $full_name, $id_no, $email, $hashed_password, $course_id, $dean_id, $clean_year_level);
 
 if ($stmt->execute()) {
     $student_id = $conn->insert_id;
     $stmt->close();
-
 
     $ojt_no = "OJT-2026-" . str_pad($student_id, 2, "0", STR_PAD_LEFT);
 
@@ -124,6 +135,77 @@ if ($stmt->execute()) {
     $stmt_ojt->bind_param("sii", $ojt_no, $site_id, $student_id);
     $stmt_ojt->execute();
     $stmt_ojt->close();
+
+    // ========================================================
+    // Synchronize Student Registration to CIT Department System
+    // ========================================================
+    try {
+        require_once 'cit_sync_helper.php';
+        ensureCitDepartmentTables($conn);
+
+        // 1. Determine Student ID in CIT Department System:
+        // Use the exact typed Student ID No. ($id_no or $student_number)
+        $cit_student_id_str = !empty($id_no) ? $id_no : $student_number;
+
+        // 2. Parse First Name and Last Name from full_name:
+        $name_trimmed = trim($full_name);
+        $name_parts = preg_split('/\s+/', $name_trimmed);
+        if (count($name_parts) > 1) {
+            $firstname = array_shift($name_parts);
+            $lastname = implode(' ', $name_parts);
+        } else {
+            $firstname = $name_trimmed;
+            $lastname = 'Student';
+        }
+
+        // 3. Determine course code:
+        $course_code = 'BSIS';
+        $c_stmt = $conn->prepare("SELECT course_code FROM course WHERE course_id = ? LIMIT 1");
+        if ($c_stmt) {
+            $c_stmt->bind_param("i", $course_id);
+            $c_stmt->execute();
+            $c_res = $c_stmt->get_result();
+            if ($c_row = $c_res->fetch_assoc()) {
+                if (!empty($c_row['course_code'])) {
+                    $course_code = trim($c_row['course_code']);
+                }
+            }
+            $c_stmt->close();
+        }
+
+        // 4. Clean and normalize year_level:
+        $clean_year_level = preg_replace('/[^0-9]/', '', $year_level);
+        if (empty($clean_year_level)) {
+            $clean_year_level = !empty($year_level) ? $year_level : '4';
+        }
+
+        // 5. Insert or Update in CIT Department System `students` table:
+        $check_cit = $conn->prepare("SELECT id FROM students WHERE student_id = ? OR (LOWER(firstname) = LOWER(?) AND LOWER(lastname) = LOWER(?)) LIMIT 1");
+        if ($check_cit) {
+            $check_cit->bind_param("sss", $cit_student_id_str, $firstname, $lastname);
+            $check_cit->execute();
+            $cit_match = $check_cit->get_result();
+            if ($cit_row = $cit_match->fetch_assoc()) {
+                $cit_db_id = intval($cit_row['id']);
+                $upd_cit = $conn->prepare("UPDATE students SET student_id = ?, firstname = ?, lastname = ?, course = ?, year_level = ?, status = 'Active' WHERE id = ?");
+                if ($upd_cit) {
+                    $upd_cit->bind_param("sssssi", $cit_student_id_str, $firstname, $lastname, $course_code, $clean_year_level, $cit_db_id);
+                    $upd_cit->execute();
+                    $upd_cit->close();
+                }
+            } else {
+                $ins_cit = $conn->prepare("INSERT INTO students (student_id, firstname, lastname, course, year_level, status) VALUES (?, ?, ?, ?, ?, 'Active')");
+                if ($ins_cit) {
+                    $ins_cit->bind_param("sssss", $cit_student_id_str, $firstname, $lastname, $course_code, $clean_year_level);
+                    $ins_cit->execute();
+                    $ins_cit->close();
+                }
+            }
+            $check_cit->close();
+        }
+    } catch (Exception $sync_ex) {
+        error_log("CIT Student Sync Error on Register: " . $sync_ex->getMessage());
+    }
 
     echo json_encode([
         "status" => "success",

@@ -260,6 +260,7 @@ class ApiService {
     int courseId = 1,
     int? deanId,
     int? siteId,
+    String yearLevel = "4",
   }) async {
     final url = Uri.parse("${AppConfig.baseUrl}/register.php");
 
@@ -270,13 +271,14 @@ class ApiService {
             headers: {"Content-Type": "application/json"},
             body: jsonEncode({
               "full_name": fullName,
-              "student_number": studentNumber,
+              "student_number": studentNumber.isNotEmpty ? studentNumber : idNo,
               "id_no": idNo,
               "email": email,
               "password": password,
               "course_id": courseId,
               "dean_id": deanId,
-              "site_id": siteId,
+              "site_id": siteId ?? 1,
+              "year_level": yearLevel,
             }),
           )
           .timeout(const Duration(seconds: 8));

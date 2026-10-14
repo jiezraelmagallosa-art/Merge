@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>InternLog | Dean's Administrative Suite</title>
+  <title>Student Records | Dean's Administrative Suite</title>
   <link rel="stylesheet" href="css/admin.css?v=9.1">
 </head>
 
@@ -20,18 +20,18 @@
         </div>
         <div class="auth-hero-title">
           <h1>Southern Baptist College</h1>
-          <p>InternLog &bull; Dean's Administrative Suite</p>
+          <p>Student Records &bull; Dean's Administrative Suite</p>
         </div>
       </div>
 
       <div class="auth-hero-body">
-        <h2>Institutional OJT Attendance & Verification Portal</h2>
-        <p>A secure administrative platform for tracking student intern placement, live facial photo verification, total
+        <h2>Institutional Student Attendance & Records Portal</h2>
+        <p>A secure administrative platform for tracking student attendance records, live facial photo verification, total
           hours rendered, and compliance monitoring.</p>
       </div>
 
       <div class="auth-hero-footer">
-        &copy; 2026 Southern Baptist College &bull; Office of Student Affairs & Internship Coordination
+        &copy; 2026 Southern Baptist College &bull; Office of Student Affairs & Academic Records
       </div>
     </div>
 
@@ -137,7 +137,7 @@
         </div>
         <div class="sidebar-brand">
           <h2>Southern Baptist College</h2>
-          <p>InternLog Dean's Suite</p>
+          <p>Student Records Dean's Suite</p>
         </div>
       </div>
 
@@ -149,7 +149,7 @@
         </a>
 
         <a class="nav-item" data-tab="students">
-          <span>Student Tracking</span>
+          <span>Student Records</span>
         </a>
 
         <a class="nav-item" data-tab="logs">
@@ -172,10 +172,6 @@
 
         <a class="nav-item" data-tab="courses">
           <span>Academic Programs</span>
-        </a>
-
-        <a class="nav-item" data-tab="sites">
-          <span>Partner Management</span>
         </a>
 
         <a class="nav-item" data-tab="reports">
@@ -208,7 +204,7 @@
       <header class="topbar">
         <div class="topbar-search">
           <span style="color: var(--text-muted);">🔍</span>
-          <input type="text" id="globalSearch" placeholder="Search student name, ID #, course, or partner facility..."
+          <input type="text" id="globalSearch" placeholder="Search student name, ID #, course, or year level..."
             oninput="handleGlobalSearch(this.value)">
         </div>
 
@@ -245,7 +241,7 @@
           <div class="page-header">
             <div class="page-header-title">
               <h1>Executive Overview</h1>
-              <p>Real-time metrics and verification snapshots across active internship placements.</p>
+              <p>Real-time metrics and verification snapshots across active student attendance records.</p>
             </div>
           </div>
 
@@ -260,7 +256,7 @@
             </div>
 
             <div class="kpi-card">
-              <div class="kpi-title">Total Registered Interns</div>
+              <div class="kpi-title">Total Registered Students</div>
               <div class="kpi-value-row">
                 <div id="kpiTotalInterns" class="kpi-value">0</div>
                 <span class="kpi-badge green">Active Enrolled</span>
@@ -305,12 +301,12 @@
         </section>
 
 
-        <!-- PANE 2: STUDENT TRACKING -->
+        <!-- PANE 2: STUDENT RECORDS -->
         <section id="view-students" class="view-pane hidden">
           <div class="page-header">
             <div class="page-header-title">
-              <h1>Student Intern Tracking</h1>
-              <p>Monitor individual placement progress, hours rendered, and completion status (480 Hours Goal).</p>
+              <h1>Student Records</h1>
+              <p>Monitor individual student progress, hours rendered, and completion status (480 Hours Goal).</p>
             </div>
           </div>
 
@@ -348,14 +344,18 @@
                 </select>
               </div>
 
-              <!-- 3. Partner Training Facility -->
+              <!-- 3. Year Level Filter -->
               <div>
-                <label for="studentSiteSelectFilter"
+                <label for="studentYearLevelSelectFilter"
                   style="font-size: 0.8rem; font-weight: 700; color: var(--navy-primary); margin-bottom: 0.3rem; display: block;">
-                  Partner Facility:
+                  Year Level:
                 </label>
-                <select id="studentSiteSelectFilter" class="form-control" onchange="handleStudentFilterChange()">
-                  <option value="ALL" selected>All Partner Facilities</option>
+                <select id="studentYearLevelSelectFilter" class="form-control" onchange="handleStudentFilterChange()">
+                  <option value="ALL" selected>All Year Levels</option>
+                  <option value="1">1st Year</option>
+                  <option value="2">2nd Year</option>
+                  <option value="3">3rd Year</option>
+                  <option value="4">4th Year</option>
                 </select>
               </div>
             </div>
@@ -368,7 +368,7 @@
                   <tr>
                     <th>Student Details</th>
                     <th>Academic Program</th>
-                    <th>Training Facility Assignment</th>
+                    <th>Year Level</th>
                     <th>Hours Progress (480h Goal)</th>
                     <th>Status</th>
                     <th>Actions</th>
@@ -438,13 +438,16 @@
                 </select>
               </div>
 
-              <!-- 3. Partner Training Facility Filter -->
+              <!-- 3. Year Level Filter -->
               <div class="filter-item">
-                <label for="logsSiteSelectFilter" class="filter-label">Partner Facility:</label>
-                <select id="logsSiteSelectFilter" class="form-control"
-                  onchange="handleLogsSiteFilterChange(this.value)">
-                  <option value="ALL" selected>All Partner Facilities</option>
-                  <!-- Dynamically populated -->
+                <label for="logsYearLevelSelectFilter" class="filter-label">Year Level:</label>
+                <select id="logsYearLevelSelectFilter" class="form-control"
+                  onchange="handleLogsYearLevelFilterChange(this.value)">
+                  <option value="ALL" selected>All Year Levels</option>
+                  <option value="1">1st Year</option>
+                  <option value="2">2nd Year</option>
+                  <option value="3">3rd Year</option>
+                  <option value="4">4th Year</option>
                 </select>
               </div>
 
@@ -468,7 +471,7 @@
                 <thead>
                   <tr>
                     <th>Date</th>
-                    <th>Student Intern</th>
+                    <th>Student</th>
                     <th>Morning Shift</th>
                     <th>Afternoon Shift</th>
                     <th>Status</th>
@@ -536,7 +539,7 @@
                 <thead>
                   <tr>
                     <th>Date Absent</th>
-                    <th>Student Intern</th>
+                    <th>Student</th>
                     <th>Reason</th>
                     <th>Supporting Attachment</th>
                     <th>Status</th>
@@ -557,7 +560,7 @@
           <div class="page-header">
             <div class="page-header-title">
               <h1>Daily Student Journals &amp; Narrative Reports</h1>
-              <p>Read daily activities, key reflections, and evaluate intern performance with feedback.</p>
+              <p>Read daily activities, key reflections, and evaluate student performance with feedback.</p>
             </div>
             <div style="display: flex; gap: 0.5rem; align-items: center;">
               <button type="button" class="btn btn-danger" id="btnDeleteAllJournals"
@@ -612,10 +615,14 @@
               </div>
 
               <div class="filter-item">
-                <label for="journalSiteSelectFilter" class="filter-label">Training Facility:</label>
-                <select id="journalSiteSelectFilter" class="form-control"
-                  onchange="handleJournalSiteFilterChange(this.value)">
-                  <option value="ALL" selected>All Partner Facilities</option>
+                <label for="journalYearLevelSelectFilter" class="filter-label">Year Level:</label>
+                <select id="journalYearLevelSelectFilter" class="form-control"
+                  onchange="handleJournalYearLevelFilterChange(this.value)">
+                  <option value="ALL" selected>All Year Levels</option>
+                  <option value="1">1st Year</option>
+                  <option value="2">2nd Year</option>
+                  <option value="3">3rd Year</option>
+                  <option value="4">4th Year</option>
                 </select>
               </div>
 
@@ -635,8 +642,8 @@
                 <thead>
                   <tr>
                     <th>Date</th>
-                    <th>Student Intern</th>
-                    <th>Facility &amp; Shift</th>
+                    <th>Student</th>
+                    <th>Shift Details</th>
                     <th>Dean Feedback</th>
                     <th>Evaluation Controls</th>
                   </tr>
@@ -649,8 +656,8 @@
           </div>
         </section>
 
-        <!-- PANE 5: PARTNER MANAGEMENT -->
-        <section id="view-sites" class="view-pane hidden">
+        <!-- PANE 5: PARTNER MANAGEMENT (REMOVED) -->
+        <section id="view-sites" class="view-pane hidden" style="display: none !important;">
           <div class="page-header">
             <div class="page-header-title">
               <h1>Partner Management</h1>
@@ -667,7 +674,7 @@
                     <th>Facility Code</th>
                     <th>Partner Facility Name</th>
                     <th>Location / Address</th>
-                    <th>Active Assigned Interns</th>
+                    <th>Active Assigned Students</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -700,7 +707,7 @@
           <div class="page-header">
             <div class="page-header-title">
               <h1>Academic Programs & Required Hours</h1>
-              <p>Configure institutional degree programs, curriculum courses, and type total required internship hours.
+              <p>Configure institutional degree programs, curriculum courses, and type total required hours.
               </p>
             </div>
             <button class="btn btn-navy" onclick="openAddCourseModal()">+ Add Academic Program</button>
@@ -713,8 +720,8 @@
                   <tr>
                     <th>Program Code</th>
                     <th>Academic Program / Course Name</th>
-                    <th>Required Total Internship Hours</th>
-                    <th>Active Enrolled Interns</th>
+                    <th>Required Total Hours</th>
+                    <th>Active Enrolled Students</th>
                     <th>Dean Controls</th>
                   </tr>
                 </thead>
@@ -768,7 +775,7 @@
             <h3 style="margin: 0; font-size: 1.18rem; color: var(--navy-primary); font-weight: 800;">Tag Students in Group Photo</h3>
           </div>
           <p id="tagModalSubtitle" style="margin: 0.25rem 0 0 0; font-size: 0.8rem; color: var(--text-muted);">
-            Credit attendance to all student interns identified in this group snapshot.
+            Credit attendance to all students identified in this group snapshot.
           </p>
         </div>
         <button class="close-btn" onclick="closeTagGroupModal()" style="font-size: 1.4rem; line-height: 1; padding: 0.2rem 0.5rem;">&times;</button>
@@ -851,7 +858,7 @@
           <!-- Roster Header with Live Count -->
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <span style="font-size: 0.8rem; font-weight: 700; color: var(--navy-primary); text-transform: uppercase; letter-spacing: 0.5px;">
-              Enrolled Student Interns Roster:
+              Enrolled Students Roster:
             </span>
             <span id="tagVisibleCountBadge" style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">
               Loading students...
@@ -875,9 +882,13 @@
               </select>
             </div>
             <div style="width: 145px;">
-              <select id="tagSiteFilterSelect" class="form-control" onchange="filterTagStudentList()"
+              <select id="tagYearLevelFilterSelect" class="form-control" onchange="filterTagStudentList()"
                 style="font-size: 0.82rem; padding: 0.45rem 0.5rem;">
-                <option value="ALL">All Facilities</option>
+                <option value="ALL">All Year Levels</option>
+                <option value="1">1st Year</option>
+                <option value="2">2nd Year</option>
+                <option value="3">3rd Year</option>
+                <option value="4">4th Year</option>
               </select>
             </div>
             <button type="button" class="btn btn-outline" onclick="selectAllFilteredStudents(true)"
@@ -899,10 +910,10 @@
                   <th
                     style="width: 48px; text-align: center; padding: 0.55rem 0.4rem; border-bottom: 2px solid var(--border-light);">
                     Mark</th>
-                  <th style="padding: 0.55rem 0.75rem; border-bottom: 2px solid var(--border-light);">Student Intern</th>
+                  <th style="padding: 0.55rem 0.75rem; border-bottom: 2px solid var(--border-light);">Student Name</th>
                   <th style="padding: 0.55rem 0.75rem; border-bottom: 2px solid var(--border-light);">ID Number</th>
                   <th style="padding: 0.55rem 0.75rem; border-bottom: 2px solid var(--border-light);">Program</th>
-                  <th style="padding: 0.55rem 0.75rem; border-bottom: 2px solid var(--border-light);">Training Site</th>
+                  <th style="padding: 0.55rem 0.75rem; border-bottom: 2px solid var(--border-light);">Year Level</th>
                 </tr>
               </thead>
               <tbody id="tagStudentListTbody">
@@ -1077,7 +1088,7 @@
         </div>
 
         <div class="form-group">
-          <label for="courseRequiredHoursInput">Type Required Total Internship Hours</label>
+          <label for="courseRequiredHoursInput">Type Required Total Curriculum Hours</label>
           <div style="position: relative;">
             <input type="number" id="courseRequiredHoursInput" class="form-control" required min="1" max="5000" step="1"
               placeholder="e.g. 480"
@@ -1094,7 +1105,7 @@
           </div>
           <small
             style="display:block; margin-top: 0.4rem; color: var(--text-muted); font-size: 0.76rem; line-height: 1.35;">
-            💡 Typing required hours here will automatically adjust the goal hours for all student interns enrolled in
+            💡 Typing required hours here will automatically adjust the goal hours for all students enrolled in
             this course.
           </small>
         </div>
@@ -1116,7 +1127,7 @@
   <div id="studentDetailsModal" class="modal-overlay" onclick="if(event.target === this) closeStudentDetailsModal()">
     <div class="modal-card" style="max-width: 560px;">
       <div class="modal-header">
-        <h3>Student Profile &amp; Internship Allocation</h3>
+        <h3>Student Profile &amp; Academic Records</h3>
         <button class="close-btn" onclick="closeStudentDetailsModal()">&times;</button>
       </div>
       <div id="studentDetailsContent"
@@ -1145,7 +1156,7 @@
       </div>
       <div style="font-size: 0.88rem; color: var(--text-main); line-height: 1.6;">
         <p style="margin-bottom: 1rem; color: var(--text-muted);">
-          Welcome to the <strong>InternLog Attendance &amp; Verification System</strong> Dean's Suite. Below is a
+          Welcome to the <strong>Student Records Attendance &amp; Verification System</strong> Dean's Suite. Below is a
           summary of
           available tools and shortcuts:
         </p>
@@ -1359,7 +1370,7 @@
   </div>
 
   <script src="js/html2pdf.bundle.min.js"></script>
-  <script src="js/admin.js?v=9.2"></script>
+  <script src="js/admin.js?v=9.6"></script>
 </body>
 
 </html>

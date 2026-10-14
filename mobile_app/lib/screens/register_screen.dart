@@ -47,12 +47,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   int? _selectedDeanId;
   List<Map<String, dynamic>> _deans = [];
 
-  int? _selectedSiteId = 1;
-  List<Map<String, dynamic>> _sites = [
-    {
-      "site_id": 1,
-      "display_name": "SBC IT Department (M'lang, Cotabato)",
-    }
+  String _selectedYearLevel = '4';
+  final List<Map<String, String>> _yearLevels = [
+    {"value": "1", "display_name": "1st Year"},
+    {"value": "2", "display_name": "2nd Year"},
+    {"value": "3", "display_name": "3rd Year"},
+    {"value": "4", "display_name": "4th Year"},
   ];
 
   @override
@@ -60,7 +60,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.initState();
     _fetchCourses();
     _fetchDeans();
-    _fetchSites();
   }
 
   Future<void> _fetchCourses() async {
@@ -106,26 +105,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  Future<void> _fetchSites() async {
-    final result = await ApiService.getSites();
-    if (mounted && result['status'] == 'success' && result['data'] != null) {
-      final List<dynamic> fetched = result['data'];
-      if (fetched.isNotEmpty) {
-        setState(() {
-          _sites = fetched
-              .map(
-                (item) => {
-                  "site_id": item['site_id'],
-                  "display_name": item['display_name'] ?? item['site_name'],
-                },
-              )
-              .toList();
-          _selectedSiteId = _sites.first['site_id'];
-        });
-      }
-    }
-  }
-
   Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -155,14 +134,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _isLoading = true;
     });
 
+    final typedId = _idNoController.text.trim();
     final result = await ApiService.registerStudent(
       fullName: _fullNameController.text.trim(),
-      idNo: _idNoController.text.trim(),
+      idNo: typedId,
+      studentNumber: typedId,
       email: _emailController.text.trim(),
       password: _passwordController.text.trim(),
       courseId: _selectedCourseId,
       deanId: _selectedDeanId,
-      siteId: _selectedSiteId,
+      siteId: 1,
+      yearLevel: _selectedYearLevel,
     );
 
     setState(() {
@@ -356,17 +338,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   borderSide: const BorderSide(color: AppColors.accentGold, width: 2),
                                 ),
                               ),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Please enter your Student ID No.';
+                                }
+                                return null;
+                              },
                             ),
                             const SizedBox(height: 14),
 
 
-                            DropdownButtonFormField<int>(
-                              initialValue: _selectedSiteId,
+                            DropdownButtonFormField<String>(
+                              initialValue: _selectedYearLevel,
                               isExpanded: true,
                               dropdownColor: AppColors.primaryNavy,
                               style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
                               decoration: InputDecoration(
-                                labelText: 'Intern Site / Training Facility',
+                                labelText: 'Year Level',
                                 labelStyle: const TextStyle(
                                   color: Colors.white70,
                                   fontWeight: FontWeight.w600,
@@ -379,7 +367,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 filled: true,
                                 fillColor: Colors.transparent,
                                 prefixIcon: const Icon(
-                                  Icons.business_outlined,
+                                  Icons.layers_outlined,
                                   color: AppColors.accentGold,
                                 ),
                                 enabledBorder: OutlineInputBorder(
@@ -391,11 +379,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   borderSide: const BorderSide(color: AppColors.accentGold, width: 2),
                                 ),
                               ),
-                              items: _sites.map((site) {
-                                return DropdownMenuItem<int>(
-                                  value: site['site_id'],
+                              items: _yearLevels.map((lvl) {
+                                return DropdownMenuItem<String>(
+                                  value: lvl['value'],
                                   child: Text(
-                                    site['display_name'],
+                                    lvl['display_name'] ?? '',
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 13,
@@ -408,7 +396,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               onChanged: (val) {
                                 if (val != null) {
                                   setState(() {
-                                    _selectedSiteId = val;
+                                    _selectedYearLevel = val;
                                   });
                                 }
                               },

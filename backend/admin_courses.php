@@ -48,7 +48,7 @@ try {
             if ($enrolled_count > 0) {
                 echo json_encode([
                     "status" => "error",
-                    "message" => "Cannot delete this course because it currently has {$enrolled_count} active enrolled intern(s). Please reassign them to another course first."
+                    "message" => "Cannot delete this course because it currently has {$enrolled_count} active enrolled student(s). Please reassign them to another course first."
                 ]);
                 exit();
             }
@@ -92,7 +92,7 @@ try {
 
                 echo json_encode([
                     "status" => "success",
-                    "message" => "Academic program updated successfully with {$required_hours} required internship hours."
+                    "message" => "Academic program updated successfully with {$required_hours} required curriculum hours."
                 ]);
             } else {
                 echo json_encode(["status" => "error", "message" => "Database update failed: " . $stmt->error]);
@@ -117,7 +117,7 @@ try {
             if ($stmt->execute()) {
                 echo json_encode([
                     "status" => "success",
-                    "message" => "New academic program '{$course_code}' added successfully with {$required_hours} required internship hours.",
+                    "message" => "New academic program '{$course_code}' added successfully with {$required_hours} required curriculum hours.",
                     "course_id" => $stmt->insert_id
                 ]);
             } else {

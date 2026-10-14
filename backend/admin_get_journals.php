@@ -54,6 +54,7 @@ try {
             c.course_name,
             ts.site_name,
             ts.location AS site_location,
+            COALESCE(s.year_level, cs.year_level, '4') AS year_level,
             a.time_in_morning,
             a.time_out_morning,
             a.time_in_afternoon,
@@ -65,6 +66,7 @@ try {
         LEFT JOIN ojt o ON j.ojt_id = o.ojt_id
         LEFT JOIN training_site ts ON o.site_id = ts.site_id
         LEFT JOIN attendance a ON j.attendance_id = a.attendance_id
+        LEFT JOIN students cs ON (s.student_number = cs.student_id OR s.id_no = cs.student_id)
     ";
 
     if ($dean_id > 0) {
@@ -87,6 +89,7 @@ try {
                 "student_email"          => $row['student_email'],
                 "course_code"            => $row['course_code'] ?? 'BSIS',
                 "course_name"            => $row['course_name'] ?? 'Information Systems',
+                "year_level"              => $row['year_level'] ?? '4',
                 "site_name"              => $row['site_name'] ?? 'Training Facility',
                 "site_location"          => $row['site_location'] ?? '',
                 "raw_date"               => $row['entry_date'],

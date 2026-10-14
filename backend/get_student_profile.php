@@ -97,7 +97,7 @@ $profile['formatted_rendered_time'] = "{$total_rendered_hours} hrs {$remaining_m
 $profile['total_days'] = $total_days;
 $profile['required_hours'] = $final_required_hours;
 $profile['is_completed'] = $is_completed;
-$profile['completion_message'] = $is_completed ? "🎉 Congratulations! You have successfully completed your {$final_required_hours} internship goal hours!" : "";
+$profile['completion_message'] = $is_completed ? "🎉 Congratulations! You have successfully completed your {$final_required_hours} goal hours!" : "";
 $profile['site_breakdown'] = $site_breakdown_data['sites'];
 
 echo json_encode([

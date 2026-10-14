@@ -43,13 +43,15 @@ try {
                 s.dean_id,
                 ud.full_name AS dean_name,
                 c.course_code,
-                ts.site_name
+                ts.site_name,
+                COALESCE(s.year_level, cs.year_level, '4') AS year_level
             FROM attendance a
             JOIN ojt o ON a.ojt_id = o.ojt_id
             JOIN student s ON o.student_id = s.student_id
             LEFT JOIN users ud ON s.dean_id = ud.user_id
             LEFT JOIN course c ON s.course_id = c.course_id
-            LEFT JOIN training_site ts ON o.site_id = ts.site_id";
+            LEFT JOIN training_site ts ON o.site_id = ts.site_id
+            LEFT JOIN students cs ON (s.student_number = cs.student_id OR s.id_no = cs.student_id)";
 
     if ($dean_id > 0) {
         $sql .= " WHERE s.dean_id = " . intval($dean_id);
@@ -127,9 +129,10 @@ try {
                     "student_id" => intval($row['student_id'] ?? 0),
                     "date" => date("M d, Y", strtotime($row['date'])),
                     "raw_date" => $row['date'],
-                    "full_name" => $row['full_name'] ?? 'Unknown Intern',
+                    "full_name" => $row['full_name'] ?? 'Unknown Student',
                     "student_number" => $row['student_number'] ?? 'N/A',
                     "course_code" => $row['course_code'] ?? 'BSIS',
+                    "year_level" => $row['year_level'] ?? '4',
                     "site_name" => $row['site_name'] ?? 'SBC IT Department',
                     "time_in_morning" => $m_in,
                     "time_out_morning" => $m_out,

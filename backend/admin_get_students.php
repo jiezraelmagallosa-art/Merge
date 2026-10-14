@@ -36,6 +36,7 @@ require_once 'db_connect.php';
                 s.email,
                 s.dean_id,
                 s.course_id,
+                COALESCE(s.year_level, cs.year_level, '4') AS year_level,
                 u.full_name AS dean_name,
                 u.email AS dean_email,
                 c.course_code,
@@ -52,7 +53,8 @@ require_once 'db_connect.php';
             LEFT JOIN users u ON s.dean_id = u.user_id
             LEFT JOIN course c ON s.course_id = c.course_id
             LEFT JOIN ojt o ON s.student_id = o.student_id
-            LEFT JOIN training_site ts ON o.site_id = ts.site_id";
+            LEFT JOIN training_site ts ON o.site_id = ts.site_id
+            LEFT JOIN students cs ON (s.student_number = cs.student_id OR s.id_no = cs.student_id)";
 
     $where = [];
     $has_specific_students = false;
@@ -158,6 +160,7 @@ require_once 'db_connect.php';
                 "course_id" => $row['course_id'],
                 "course_code" => $row['course_code'] ?? 'BSIS',
                 "course_name" => $row['course_name'] ?? 'BS Information Systems',
+                "year_level" => $row['year_level'] ?? '4',
                 "course_required_hours" => intval($row['course_required_hours'] ?? 480),
                 "site_id" => $row['site_id'] ?? 1,
                 "site_name" => $row['site_name'] ?? 'SBC IT Department',

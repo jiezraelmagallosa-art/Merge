@@ -73,7 +73,12 @@
     .brand-logo {
       width: 48px;
       height: 48px;
-      object-fit: contain;
+      object-fit: cover;
+      border-radius: 50%;
+      background: #ffffff;
+      padding: 1px;
+      border: 2px solid rgba(212, 175, 55, 0.6);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
       filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));
     }
 
@@ -851,7 +856,7 @@
       <img src="web_admin/assets/images/sbc_logo.png" alt="SBC Logo" class="brand-logo" onerror="this.src='mobile_app/assets/images/sbc_logo.png'">
       <div class="brand-text">
         <h1>Southern Baptist College</h1>
-        <p>OJT & Internship ID Tap Terminal</p>
+        <p>Student Record ID Tap Terminal</p>
       </div>
     </a>
 
@@ -1033,7 +1038,7 @@
 
   <!-- Kiosk Footer -->
   <footer class="kiosk-footer">
-    Southern Baptist College Internship Attendance & Verification System &bull; ID Tap Station Terminal &bull;
+    Southern Baptist College Student Record Attendance System &bull; ID Tap Station Terminal &bull;
     <a href="web_admin/index.html">Dean Administration Portal</a>
   </footer>
 
@@ -1273,7 +1278,7 @@
 
         <div>
           <div class="progress-labels">
-            <span>OJT Rendered Hours: ${s.rendered_hours} hrs</span>
+            <span>Rendered Hours: ${s.rendered_hours} hrs</span>
             <span>Required: ${s.required_hours} hrs (${s.progress_percent}%)</span>
           </div>
           <div class="progress-strip">

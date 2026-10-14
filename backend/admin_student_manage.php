@@ -73,7 +73,7 @@ try {
 
         echo json_encode([
             "status" => "success",
-            "message" => "Total required internship hours adjusted to {$required_hours} hours for this student.",
+            "message" => "Total required hours adjusted to {$required_hours} hours for this student.",
             "required_hours" => $required_hours
         ]);
         exit();

@@ -344,7 +344,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     const SizedBox(height: 2),
                                     Text(
                                       _profileData['completion_message'] ??
-                                          'Congratulations! You have completed your required $requiredHours internship hours.',
+                                          'Congratulations! You have completed your required $requiredHours goal hours.',
                                       style: const TextStyle(
                                         fontSize: 11,
                                         color: Colors.black87,

@@ -26,7 +26,7 @@ define('DB_PORT', getenv('DB_PORT') ? intval(getenv('DB_PORT')) : 3306);
 // ------------------------------------------------------------
 // APPLICATION SETTINGS
 // ------------------------------------------------------------
-define('APP_NAME', 'SBC Internship Attendance & Verification System');
+define('APP_NAME', 'SBC Student Records Attendance System');
 define('APP_VERSION', '1.0.0');
 define('APP_TIMEZONE', 'Asia/Manila');
 

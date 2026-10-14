@@ -38,12 +38,14 @@ try {
                 s.dean_id,
                 ud.full_name AS dean_name,
                 c.course_code,
+                COALESCE(s.year_level, cs.year_level, '4') AS year_level,
                 u.full_name AS reviewed_by_name
             FROM absence_requests ar
             JOIN student s ON ar.student_id = s.student_id
             LEFT JOIN users ud ON s.dean_id = ud.user_id
             LEFT JOIN course c ON s.course_id = c.course_id
-            LEFT JOIN users u ON ar.reviewed_by = u.user_id";
+            LEFT JOIN users u ON ar.reviewed_by = u.user_id
+            LEFT JOIN students cs ON (s.student_number = cs.student_id OR s.id_no = cs.student_id)";
 
     if ($dean_id > 0) {
         $sql .= " WHERE s.dean_id = " . intval($dean_id);
@@ -77,6 +79,7 @@ try {
                 "full_name" => $row['full_name'],
                 "dean_name" => $row['dean_name'] ?? 'Unassigned Dean',
                 "course_code" => $row['course_code'] ?? 'BSIS',
+                "year_level" => $row['year_level'] ?? '4',
                 "reviewed_by_name" => $row['reviewed_by_name'] ?? 'Pending Evaluation'
             ];
         }

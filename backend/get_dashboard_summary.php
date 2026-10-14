@@ -78,7 +78,7 @@ $remaining_hours = floor($remaining_total_minutes / 60);
 $remaining_mins = $remaining_total_minutes % 60;
 $progress_percentage = $target_total_minutes > 0 ? min(100.0, round(($total_minutes / $target_total_minutes) * 100, 1)) : 0;
 $is_completed = ($progress_percentage >= 100.0);
-$completion_message = $is_completed ? "🎉 Congratulations! You have successfully completed your {$target_hours} internship goal hours! SBC is proud of your hard work and dedication." : "";
+$completion_message = $is_completed ? "🎉 Congratulations! You have successfully completed your {$target_hours} goal hours! SBC is proud of your hard work and dedication." : "";
 
 require_once 'site_helper.php';
 $site_breakdown_data = getStudentSiteBreakdown($conn, $student_id);

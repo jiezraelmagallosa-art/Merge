@@ -588,7 +588,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'InternLog',
+              'Student Records',
               style: TextStyle(
                 fontSize: _showWelcome ? 14 : 18,
                 fontWeight: _showWelcome ? FontWeight.normal : FontWeight.bold,
@@ -1189,7 +1189,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              '🎉 Congratulations! You have successfully finished your required 480 internship goal hours! SBC is proud of your hard work, dedication, and commitment. Tap to celebrate! 🎓✨',
+                              '🎉 Congratulations! You have successfully finished your required 480 goal hours! SBC is proud of your hard work, dedication, and commitment. Tap to celebrate! 🎓✨',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
