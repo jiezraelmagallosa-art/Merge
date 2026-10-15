@@ -548,7 +548,7 @@ def delete_event(event_id):
 	cursor.execute("DELETE FROM event_exemptions WHERE event_id=%s", (event_id,))
 	cursor.execute("DELETE FROM paper_attendance WHERE event_id=%s", (event_id,))
 	cursor.execute("DELETE FROM fines WHERE event_id=%s", (event_id,))
-	cursor.execute("DELETE FROM attendance WHERE event_id=%s", (event_id,))
+	cursor.execute("DELETE FROM cit_attendance WHERE event_id=%s", (event_id,))
 	cursor.execute("DELETE FROM events WHERE event_id=%s", (event_id,))
 	conn.commit()
 	conn.close()

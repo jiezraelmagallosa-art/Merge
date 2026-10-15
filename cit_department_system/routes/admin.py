@@ -131,6 +131,7 @@ def students():
 @require_admin
 def add_student():
     if request.method == "POST":
+        student_id = request.form.get("student_id", "").strip()
         firstname = request.form["firstname"].strip().upper()
         lastname = request.form["lastname"].strip().upper()
         course = request.form["course"].strip().upper()
@@ -138,32 +139,46 @@ def add_student():
 
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        cursor.execute(
-            """
-            SELECT id
-            FROM students
-            WHERE firstname=%s AND lastname=%s AND course=%s AND year_level=%s
-            LIMIT 1
-            """,
-            (firstname, lastname, course, year_level),
-        )
+
+        # 1. Check duplicate in students table
+        where_conds = ["(firstname=%s AND lastname=%s AND course=%s AND year_level=%s)"]
+        params = [firstname, lastname, course, year_level]
+        if student_id:
+            where_conds.append("student_id=%s")
+            params.append(student_id)
+
+        query = f"SELECT id, student_id FROM students WHERE {' OR '.join(where_conds)} LIMIT 1"
+        cursor.execute(query, tuple(params))
         if cursor.fetchone():
             conn.close()
-            flash("A student with the same name, course, and year level already exists.", "danger")
+            flash("A student with this ID or Name, Course, and Year Level already exists.", "danger")
             return redirect(request.referrer or "/students")
+
+        # 2. Check if already registered in mobile app `student` table to auto-link RFID and student_number
+        rfid_uid = None
+        if not student_id:
+            cursor.execute(
+                "SELECT student_number, rfid_uid FROM student WHERE LOWER(full_name) LIKE %s LIMIT 1",
+                (f"%{firstname.lower()}%{lastname.lower()}%",)
+            )
+            s_match = cursor.fetchone()
+            if s_match:
+                student_id = s_match.get("student_number")
+                rfid_uid = s_match.get("rfid_uid")
 
         cursor = conn.cursor()
         cursor.execute(
             """
             INSERT INTO students
-            (firstname, lastname, course, year_level, status)
-            VALUES (%s, %s, %s, %s, 'Active')
+            (student_id, firstname, lastname, course, year_level, rfid_uid, status)
+            VALUES (%s, %s, %s, %s, %s, %s, 'Active')
             """,
-            (firstname, lastname, course, year_level),
+            (student_id or None, firstname, lastname, course, year_level, rfid_uid),
         )
         conn.commit()
         conn.close()
 
+        flash("Student added successfully without duplicate.", "success")
         return redirect("/students")
 
     return render_template("admin/add_student.html")
@@ -1014,10 +1029,11 @@ def upload_csv():
     if request.method == 'POST':
         file = request.files.get('csv_file')
         import_type = request.form.get('import_type', '').strip()
-        if not file or file.filename == '':
+        filename = (file.filename or '').strip() if file else ''
+        if not file or not filename:
             message = 'Please select a CSV file to upload.'
             message_type = 'danger'
-        elif not file.filename.lower().endswith('.csv'):
+        elif not filename.lower().endswith('.csv'):
             message = 'Only CSV files are allowed.'
             message_type = 'danger'
         elif import_type not in ('Funds', 'Fines'):

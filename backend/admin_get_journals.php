@@ -52,8 +52,8 @@ try {
             s.email AS student_email,
             c.course_code,
             c.course_name,
-            ts.site_name,
-            ts.location AS site_location,
+            'CIT Event' AS site_name,
+            'CIT Campus' AS site_location,
             COALESCE(s.year_level, cs.year_level, '4') AS year_level,
             a.time_in_morning,
             a.time_out_morning,
@@ -63,8 +63,6 @@ try {
         FROM daily_journal j
         JOIN student s ON j.student_id = s.student_id
         LEFT JOIN course c ON s.course_id = c.course_id
-        LEFT JOIN ojt o ON j.ojt_id = o.ojt_id
-        LEFT JOIN training_site ts ON o.site_id = ts.site_id
         LEFT JOIN attendance a ON j.attendance_id = a.attendance_id
         LEFT JOIN students cs ON (s.student_number = cs.student_id OR s.id_no = cs.student_id)
     ";

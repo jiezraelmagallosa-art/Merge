@@ -17,5 +17,27 @@
     },
     "python.pyrefly.typeCheckingMode": "off",
     "python.pyrefly.disableTypeErrors": true,
-    "python.pyrefly.configPath": "${workspaceFolder}\\pyrefly.toml"
+    "python.pyrefly.configPath": "${workspaceFolder}\\pyrefly.toml",
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/CVS": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true,
+        ".venv": true,
+        ".ruff_cache": true,
+        "**/.pytest_cache": true,
+        "**/__pycache__": true,
+        "**/*.pyc": true,
+        "**/.dart_tool": true
+    },
+    "explorer.fileNesting.enabled": true,
+    "explorer.fileNesting.expand": false,
+    "explorer.fileNesting.patterns": {
+        "README.md": "README*, DEPLOYMENT.md, LICENSE*",
+        "index.php": "kiosk.php, cleanup.php, tap_attendance.php",
+        "run_cit_system.bat": "pyrightconfig.json, pyrefly.toml"
+    },
+    "explorer.compactFolders": true
 }

@@ -33,7 +33,7 @@ try {
 
 
     if ($dean_id > 0) {
-        $sql_shifts = "SELECT COUNT(*) AS total FROM attendance a JOIN ojt o ON a.ojt_id = o.ojt_id JOIN student s ON o.student_id = s.student_id WHERE a.date = '$today' AND s.dean_id = $dean_id";
+        $sql_shifts = "SELECT COUNT(*) AS total FROM attendance a JOIN student s ON (a.student_id = s.student_id OR a.ojt_id = s.student_id) WHERE a.date = '$today' AND s.dean_id = $dean_id";
     } else {
         $sql_shifts = "SELECT COUNT(*) AS total FROM attendance WHERE date = '$today'";
     }
@@ -54,24 +54,18 @@ try {
     $a_min = "CASE WHEN (a.status IS NULL OR a.status != 'Rejected') AND (a.afternoon_status IS NULL OR a.afternoon_status != 'Rejected') AND a.time_in_afternoon IS NOT NULL AND a.time_out_afternoon IS NOT NULL THEN TIMESTAMPDIFF(MINUTE, a.time_in_afternoon, a.time_out_afternoon) ELSE 0 END";
 
     if ($dean_id > 0) {
-        $sql_hours = "SELECT SUM($m_min + $a_min) AS total_min FROM attendance a JOIN ojt o ON a.ojt_id = o.ojt_id JOIN student s ON o.student_id = s.student_id WHERE s.dean_id = $dean_id";
+        $sql_hours = "SELECT SUM($m_min + $a_min) AS total_min FROM attendance a JOIN student s ON (a.student_id = s.student_id OR a.ojt_id = s.student_id) WHERE s.dean_id = $dean_id";
     } else {
         $sql_hours = "SELECT SUM($m_min + $a_min) AS total_min FROM attendance a";
     }
     $res_hours = $conn->query($sql_hours);
     $total_minutes = intval($res_hours->fetch_assoc()['total_min'] ?? 0);
-    $total_rendered_hours = floor($total_minutes / 60);
+    $total_rendered_hours = max(0, (int)floor($total_minutes / 60));
 
 
-    $sql_target = "SELECT SUM(COALESCE(o.required_hours, c.required_hours, 480)) AS total_target FROM student s LEFT JOIN ojt o ON s.student_id = o.student_id LEFT JOIN course c ON s.course_id = c.course_id";
-    if ($dean_id > 0) $sql_target .= " WHERE s.dean_id = $dean_id";
-    $res_target = $conn->query($sql_target);
-    $target_total = max(1, intval($res_target->fetch_assoc()['total_target'] ?? ($total_interns * 480)));
-    $completion_rate = min(100.0, round(($total_rendered_hours / $target_total) * 100, 1));
-
-
-    $res_sites = $conn->query("SELECT COUNT(*) AS total FROM training_site");
-    $total_sites = intval($res_sites->fetch_assoc()['total'] ?? 0);
+    $target_total = max(1, $total_interns);
+    $completion_rate = 100.0;
+    $total_sites = 0;
 
 
     $sql_photos = "SELECT
@@ -85,8 +79,7 @@ try {
                     c.course_code
                    FROM photo p
                    JOIN attendance a ON p.attendance_id = a.attendance_id
-                   JOIN ojt o ON a.ojt_id = o.ojt_id
-                   JOIN student s ON o.student_id = s.student_id
+                   JOIN student s ON (a.student_id = s.student_id OR a.ojt_id = s.student_id)
                    LEFT JOIN course c ON s.course_id = c.course_id";
     $where_p = ["(a.status IS NULL OR a.status != 'Confirmed')"];
     if ($dean_id > 0) {

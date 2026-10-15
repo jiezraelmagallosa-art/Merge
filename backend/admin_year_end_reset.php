@@ -95,8 +95,7 @@ try {
         SELECT p.image_path 
         FROM photo p
         JOIN attendance a ON p.attendance_id = a.attendance_id
-        JOIN ojt o ON a.ojt_id = o.ojt_id
-        WHERE o.student_id IN ($in_placeholders)
+        WHERE a.student_id IN ($in_placeholders)
     ";
     $stmt_p = $conn->prepare($photo_query);
     $stmt_p->bind_param($in_types, ...$student_ids);

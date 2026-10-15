@@ -55,12 +55,11 @@ try {
             a.morning_status,
             a.afternoon_status,
             a.status,
-            o.site_id,
+            1 AS site_id,
             s.student_id AS submitter_student_id,
             s.full_name AS submitter_name
         FROM attendance a
-        JOIN ojt o ON a.ojt_id = o.ojt_id
-        JOIN student s ON o.student_id = s.student_id
+        JOIN student s ON (a.student_id = s.student_id OR a.ojt_id = s.student_id)
         WHERE a.attendance_id = ?
         LIMIT 1
     ");
@@ -150,33 +149,12 @@ try {
             continue;
         }
 
-        // Find or resolve ojt_id for this student
-        $ojt_id = 0;
-        $stmt_ojt = $conn->prepare("SELECT ojt_id FROM ojt WHERE student_id = ? LIMIT 1");
-        $stmt_ojt->bind_param("i", $st_id);
-        $stmt_ojt->execute();
-        $res_ojt = $stmt_ojt->get_result();
-        if ($row_ojt = $res_ojt->fetch_assoc()) {
-            $ojt_id = intval($row_ojt['ojt_id']);
-        }
-        $stmt_ojt->close();
-
-        // Create OJT record if not found
-        if ($ojt_id <= 0) {
-            $ojt_no = "OJT-2026-" . str_pad($st_id, 3, "0", STR_PAD_LEFT);
-            $stmt_ins_ojt = $conn->prepare("INSERT INTO ojt (ojt_no, site_id, student_id, required_hours) VALUES (?, ?, ?, 480)");
-            $stmt_ins_ojt->bind_param("sii", $ojt_no, $ref_site_id, $st_id);
-            $stmt_ins_ojt->execute();
-            $ojt_id = $stmt_ins_ojt->insert_id;
-            $stmt_ins_ojt->close();
-        }
-
-        if ($ojt_id <= 0) continue;
+        $ojt_id = $st_id;
 
         // Check if student already has an attendance record on this date
         $existing_att_id = 0;
-        $stmt_check = $conn->prepare("SELECT attendance_id, time_in_morning, time_out_morning, time_in_afternoon, time_out_afternoon FROM attendance WHERE ojt_id = ? AND date = ? LIMIT 1");
-        $stmt_check->bind_param("is", $ojt_id, $ref_date);
+        $stmt_check = $conn->prepare("SELECT attendance_id, time_in_morning, time_out_morning, time_in_afternoon, time_out_afternoon FROM attendance WHERE (student_id = ? OR ojt_id = ?) AND date = ? LIMIT 1");
+        $stmt_check->bind_param("iis", $st_id, $st_id, $ref_date);
         $stmt_check->execute();
         $res_check = $stmt_check->get_result();
         if ($row_check = $res_check->fetch_assoc()) {

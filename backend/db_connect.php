@@ -65,11 +65,10 @@ try {
         }
     }
 
-    // Add site_id column to attendance table if not present and backfill
-    $col_att_site = @$conn->query("SHOW COLUMNS FROM attendance LIKE 'site_id'");
-    if ($col_att_site && $col_att_site->num_rows == 0) {
-        @$conn->query("ALTER TABLE attendance ADD COLUMN site_id INT NULL AFTER ojt_id");
-        @$conn->query("UPDATE attendance a JOIN ojt o ON a.ojt_id = o.ojt_id SET a.site_id = o.site_id WHERE a.site_id IS NULL");
+    // Add student_id column to attendance table if not present
+    $col_att_student = @$conn->query("SHOW COLUMNS FROM attendance LIKE 'student_id'");
+    if ($col_att_student && $col_att_student->num_rows == 0) {
+        @$conn->query("ALTER TABLE attendance ADD COLUMN student_id INT NOT NULL DEFAULT 1 AFTER attendance_id");
     }
 
     // Add shift-level status and remarks to attendance table if not present
@@ -81,24 +80,11 @@ try {
         @$conn->query("ALTER TABLE attendance ADD COLUMN afternoon_remarks TEXT NULL AFTER afternoon_status");
     }
 
-    // Create student_site_history table if not exists
-    @$conn->query("CREATE TABLE IF NOT EXISTS student_site_history (
-        history_id INT PRIMARY KEY AUTO_INCREMENT,
-        student_id INT NOT NULL,
-        site_id INT NOT NULL,
-        assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        pulled_out_at TIMESTAMP NULL,
-        is_current TINYINT(1) DEFAULT 1,
-        remarks VARCHAR(255) NULL,
-        INDEX (student_id),
-        INDEX (site_id)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-
     // Create daily_journal table if not exists
     @$conn->query("CREATE TABLE IF NOT EXISTS daily_journal (
         journal_id INT PRIMARY KEY AUTO_INCREMENT,
         student_id INT NOT NULL,
-        ojt_id INT NOT NULL,
+        ojt_id INT NULL DEFAULT NULL,
         attendance_id INT NULL,
         entry_date DATE NOT NULL,
         tasks_completed TEXT NOT NULL,
@@ -113,21 +99,6 @@ try {
         INDEX (entry_date),
         INDEX (ojt_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-
-    // Seed existing students into student_site_history if empty
-    $hist_check = @$conn->query("SELECT COUNT(*) as cnt FROM student_site_history");
-    if ($hist_check) {
-        $h_cnt = intval($hist_check->fetch_assoc()['cnt'] ?? 0);
-        if ($h_cnt == 0) {
-            @$conn->query("INSERT INTO student_site_history (student_id, site_id, is_current)
-                SELECT o.student_id, o.site_id, 1 
-                FROM ojt o 
-                WHERE o.student_id IS NOT NULL AND o.site_id IS NOT NULL
-                GROUP BY o.student_id, o.site_id");
-        }
-    }
-    // Clean up orphaned OJT records whose student no longer exists
-    @$conn->query("DELETE FROM ojt WHERE student_id NOT IN (SELECT student_id FROM student)");
 
     // Ensure CIT Department System tables and mirror students in unified database
     require_once __DIR__ . '/cit_sync_helper.php';

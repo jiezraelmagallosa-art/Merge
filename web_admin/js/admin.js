@@ -554,15 +554,11 @@ function renderStudentsTable(students) {
           <div style="font-weight: 700; color: var(--navy-primary); font-size: 0.95rem;">${formatYearLevelDisplay(s.year_level)}</div>
           <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem;">Undergraduate Student</div>
         </td>
-        <td style="width: 180px;">
-          <div class="progress-container">
-            <div class="progress-bar-bg">
-              <div class="progress-bar-fill" style="width: ${s.progress_percentage}%;"></div>
-            </div>
-            <div class="progress-text">${s.formatted_time} / ${s.required_hours}h (${s.progress_percentage}%)</div>
-          </div>
+        <td>
+          <div style="font-weight: 700; color: #166534; font-size: 0.95rem;">${s.total_days || 0} Session(s)</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem;">Event Presence</div>
         </td>
-        <td><span class="badge ${statusBadgeClass}">${s.progress_percentage >= 100 || s.status === 'Completed' ? '🏆 Completed 🎉' : s.status}</span></td>
+        <td><span class="badge badge-success">Active</span></td>
 
         <td>
           <div style="display:flex; gap:0.4rem; align-items:center;">
@@ -3658,76 +3654,9 @@ async function openStudentDrawer(studentId) {
       </div>
 
       <div style="border: 1px solid var(--border-light); padding: 0.85rem; border-radius: var(--radius-sm);">
-        <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.3rem;">Active Partner Facility</div>
-        <div style="font-size: 0.85rem; font-weight: 700; color: var(--navy-primary);">${escapeHtml(s.site_name)}</div>
-        <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.15rem;">${escapeHtml(s.ojt_no)} &bull; ${escapeHtml(s.site_location)}</div>
-      </div>
-    </div>
-
-    <div style="border: 1px solid var(--border-light); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.25rem;">
-      <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">${s.required_hours}-Hour Goal Progress</div>
-      <div class="progress-container" style="margin-bottom: 0.6rem;">
-        <div class="progress-bar-bg" style="height: 10px; background-color: var(--border-light);">
-          <div class="progress-bar-fill" style="width: ${s.progress_percentage}%; height: 100%; background-color: ${s.progress_percentage >= 100 ? '#2e7d32' : 'var(--gold-accent)'};"></div>
-        </div>
-      </div>
-      <div style="display: flex; justify-content: space-between; font-size: 0.82rem; font-weight: 600; margin-bottom: 0.4rem;">
-        <span>Hours Rendered: <strong style="color: var(--navy-primary);">${s.formatted_time}</strong></span>
-        <span>Target Goal: <strong>${s.required_hours} hrs</strong> (${s.progress_percentage}%)</span>
-      </div>
-      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border-light); padding-top: 0.5rem; margin-top: 0.4rem;">
-        <span>Total Attendance Days: <strong>${s.total_days} days</strong></span>
-        <span>Completion Status: <span class="badge ${statusBadgeClass}">${s.progress_percentage >= 100 ? '🏆 Completed 🎉' : s.status}</span></span>
-      </div>
-      ${s.progress_percentage >= 100 || s.status === 'Completed' ? `
-        <div style="background: #fffdf0; border: 1.5px solid #ffb800; padding: 0.85rem; border-radius: var(--radius-sm); margin-top: 0.75rem; display: flex; align-items: flex-start; gap: 0.75rem;">
-          <div style="font-size: 1.4rem; line-height: 1;">🎉</div>
-          <div>
-            <div style="font-weight: 700; color: var(--navy-primary); font-size: 0.88rem;">Goal Hours Completed! 🏆</div>
-            <div style="font-size: 0.78rem; color: #4a5568; margin-top: 0.2rem; line-height: 1.35;">
-              Congratulations! This student has successfully completed their required ${s.required_hours}-hour goal requirement with dedication and excellence.
-            </div>
-          </div>
-        </div>
-      ` : ''}
-    </div>
-
-    <!-- Multi-Site Facilities Breakdown -->
-    <div style="border: 1px solid var(--border-light); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.25rem;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-        <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--navy-primary);">🏢 Training Facilities & Logged Hours</div>
-        <span style="font-size: 0.72rem; background: #fff8e1; color: #b7791f; padding: 2px 8px; border-radius: 12px; font-weight: 700;">
-          ${(s.site_breakdown || []).length} ${(s.site_breakdown || []).length === 1 ? 'Site' : 'Sites'}
-        </span>
-      </div>
-      <div style="font-size: 0.76rem; color: var(--text-muted); margin-bottom: 0.75rem;">
-        Hours from earlier training sites remain recorded with their location label. Cumulative time continues at the active site.
-      </div>
-      <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-        ${(s.site_breakdown && s.site_breakdown.length > 0 ? s.site_breakdown : [{
-      site_name: s.site_name,
-      location: s.site_location,
-      is_current: true,
-      label: 'Current Location',
-      formatted_time: s.formatted_time,
-      total_days: s.total_days
-    }]).map(st => `
-          <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.8rem; border-radius: 6px; background: ${st.is_current ? '#f0fdf4' : '#f8fafc'}; border: 1px solid ${st.is_current ? '#86efac' : 'var(--border-light)'};">
-            <div>
-              <div style="display: flex; align-items: center; gap: 0.4rem;">
-                <span style="font-weight: 700; font-size: 0.84rem; color: ${st.is_current ? 'var(--navy-primary)' : '#475569'};">${escapeHtml(st.site_name)}</span>
-                <span style="font-size: 0.65rem; font-weight: 700; padding: 1px 6px; border-radius: 10px; background: ${st.is_current ? '#2e7d32' : '#64748b'}; color: #fff;">
-                  ${st.is_current ? 'CURRENT LOCATION' : 'PREVIOUS LOCATION'}
-                </span>
-              </div>
-              <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 2px;">${escapeHtml(st.location || '')} &bull; ${st.total_days || 0} attendance day(s)</div>
-            </div>
-            <div style="text-align: right;">
-              <div style="font-size: 0.85rem; font-weight: 800; color: ${st.is_current ? '#166534' : '#334155'};">${st.formatted_time || '0 hrs 0 mins'}</div>
-              <div style="font-size: 0.68rem; color: var(--text-muted);">${st.is_current ? 'Active Site Hours' : 'Hours from earlier site'}</div>
-            </div>
-          </div>
-        `).join('')}
+        <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.3rem;">Event Attendance Presence</div>
+        <div style="font-size: 1.15rem; font-weight: 800; color: #166534;">${s.total_days || 0} Sessions</div>
+        <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.15rem;">Recorded Event Presence</div>
       </div>
     </div>
 
@@ -3736,33 +3665,9 @@ async function openStudentDrawer(studentId) {
       <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.6rem;">🎓 Reassign Academic Program</div>
       <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
         <select id="drawerCourseSelect" style="flex: 1; min-width: 180px; padding: 0.5rem 0.75rem; border: 1px solid var(--border-light); border-radius: var(--radius-sm); font-size: 0.85rem; background: #fff; color: var(--navy-primary); font-weight: 600;">
-          ${(cachedCourses || []).map(c => `<option value="${c.course_id}" ${c.course_id == s.course_id ? 'selected' : ''}>${escapeHtml(c.course_code)} — ${escapeHtml(c.course_name)} (${c.required_hours}h)</option>`).join('')}
+          ${(cachedCourses || []).map(c => `<option value="${c.course_id}" ${c.course_id == s.course_id ? 'selected' : ''}>${escapeHtml(c.course_code)} — ${escapeHtml(c.course_name)}</option>`).join('')}
         </select>
         <button class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.82rem; white-space: nowrap;" onclick="saveStudentAssignedCourse(${s.student_id})">Save Program</button>
-      </div>
-    </div>
-
-    <!-- Dean Controls: Transfer Training Facility -->
-    <div style="border: 1px solid var(--border-light); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1rem; background: var(--bg-canvas);">
-      <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.6rem;">🏢 Transfer Partner Training Facility</div>
-      <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-        <select id="drawerSiteSelect" style="flex: 1; min-width: 180px; padding: 0.5rem 0.75rem; border: 1px solid var(--border-light); border-radius: var(--radius-sm); font-size: 0.85rem; background: #fff; color: var(--navy-primary); font-weight: 600;">
-          ${(cachedSites || []).map(st => `<option value="${st.site_id}" ${st.site_id == s.site_id ? 'selected' : ''}>${escapeHtml(st.site_name)} (${escapeHtml(st.location || '')})</option>`).join('')}
-        </select>
-        <button class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.82rem; white-space: nowrap;" onclick="saveStudentAssignedSite(${s.student_id})">Transfer Site</button>
-      </div>
-    </div>
-
-    <!-- Dean Controls: Custom Hours -->
-    <div style="border: 1px solid var(--border-light); padding: 1rem; border-radius: var(--radius-sm); background: var(--bg-canvas);">
-      <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.6rem;">⏱️ Override Required Hours</div>
-      <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.6rem;">
-        ${[240, 300, 480, 500, 600].map(h => `<button class="btn-preset-chip ${s.required_hours == h ? 'active' : ''}" onclick="setDrawerPresetHours(${h})">${h}h</button>`).join('')}
-      </div>
-      <div style="display: flex; gap: 0.5rem; align-items: center;">
-        <input type="number" id="drawerHoursInput" value="${s.required_hours}" min="1" max="9999" style="flex: 1; padding: 0.5rem 0.75rem; border: 1px solid var(--border-light); border-radius: var(--radius-sm); font-size: 0.9rem; font-weight: 700; color: var(--navy-primary); background: #fff; max-width: 130px;">
-        <span style="font-size: 0.82rem; color: var(--text-muted);">hours total</span>
-        <button class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.82rem; white-space: nowrap;" onclick="saveStudentCustomHours(${s.student_id})">Save Hours</button>
       </div>
     </div>
 
@@ -4064,61 +3969,7 @@ async function saveStudentAssignedCourse(studentId) {
   }
 }
 
-async function saveStudentCustomHours(studentId) {
-  const input = document.getElementById('drawerHoursInput');
-  if (!input) return;
-  const required_hours = parseInt(input.value, 10);
-  if (isNaN(required_hours) || required_hours < 1) {
-    alert('Please enter a valid number of hours (minimum 1).');
-    return;
-  }
-  try {
-    const res = await fetch(API_BASE + 'admin_student_manage.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'update_required_hours', student_id: studentId, required_hours })
-    });
-    const data = await res.json();
-    if (data.status === 'success') {
-      alert(`Required hours updated to ${required_hours}h successfully.`);
-      closeStudentDetailsModal();
-      fetchStudents();
-    } else {
-      alert(data.message || 'Failed to update hours.');
-    }
-  } catch (err) {
-    console.error('Save student hours error:', err);
-  }
-}
-
-async function saveStudentAssignedSite(studentId) {
-  const sel = document.getElementById('drawerSiteSelect');
-  if (!sel) return;
-  const new_site_id = parseInt(sel.value, 10);
-  if (!new_site_id) return;
-
-  try {
-    const res = await fetch(API_BASE + 'update_student_site.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        student_id: studentId,
-        new_site_id: new_site_id,
-        remarks: 'Transferred by Dean of Student Affairs'
-      })
-    });
-    const data = await res.json();
-    if (data.status === 'success') {
-      alert(data.message || 'Training site transferred successfully. Previous hours preserved.');
-      await fetchStudents();
-      openStudentDrawer(studentId);
-    } else {
-      alert(data.message || 'Failed to transfer site.');
-    }
-  } catch (err) {
-    console.error('Save student site error:', err);
-  }
-}
+// Hours customization and site transfers are deprecated in CIT Event Attendance System
 
 async function deleteStudentAccount(studentId, studentName) {
   const nameDisplay = studentName ? `"${studentName}"` : 'this student';

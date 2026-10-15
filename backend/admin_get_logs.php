@@ -43,14 +43,12 @@ try {
                 s.dean_id,
                 ud.full_name AS dean_name,
                 c.course_code,
-                ts.site_name,
+                'CIT Event' AS site_name,
                 COALESCE(s.year_level, cs.year_level, '4') AS year_level
             FROM attendance a
-            JOIN ojt o ON a.ojt_id = o.ojt_id
-            JOIN student s ON o.student_id = s.student_id
+            JOIN student s ON (a.student_id = s.student_id OR a.ojt_id = s.student_id)
             LEFT JOIN users ud ON s.dean_id = ud.user_id
             LEFT JOIN course c ON s.course_id = c.course_id
-            LEFT JOIN training_site ts ON o.site_id = ts.site_id
             LEFT JOIN students cs ON (s.student_number = cs.student_id OR s.id_no = cs.student_id)";
 
     if ($dean_id > 0) {
@@ -154,8 +152,7 @@ try {
     // Overall counts per course for logs
     $counts_sql = "SELECT COALESCE(c.course_code, 'BSIS') as course_code, COUNT(a.attendance_id) as total
                    FROM attendance a
-                   JOIN ojt o ON a.ojt_id = o.ojt_id
-                   JOIN student s ON o.student_id = s.student_id
+                   JOIN student s ON (a.student_id = s.student_id OR a.ojt_id = s.student_id)
                    LEFT JOIN course c ON s.course_id = c.course_id";
     if ($dean_id > 0) {
         $counts_sql .= " WHERE s.dean_id = " . intval($dean_id);

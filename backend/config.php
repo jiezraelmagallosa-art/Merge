@@ -20,7 +20,7 @@ $is_local_env = (php_sapi_name() === 'cli' && empty(getenv('DB_HOST')))
 define('DB_HOST', getenv('DB_HOST') ?: ($is_local_env ? 'localhost' : 'sql110.infinityfree.com'));
 define('DB_USER', getenv('DB_USER') ?: ($is_local_env ? 'root' : 'if0_42771510'));
 define('DB_PASS', getenv('DB_PASS') !== false ? getenv('DB_PASS') : ($is_local_env ? '' : '2tG0ijV6kq8'));
-define('DB_NAME', getenv('DB_NAME') ?: ($is_local_env ? 'sbc_internship_db' : 'if0_42771510_sbc_internship_db'));
+define('DB_NAME', getenv('DB_NAME') ?: ($is_local_env ? 'cit_attendance_db' : 'if0_42771510_cit_attendance_db'));
 define('DB_PORT', getenv('DB_PORT') ? intval(getenv('DB_PORT')) : 3306);
 
 // ------------------------------------------------------------

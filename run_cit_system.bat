@@ -3,7 +3,7 @@ title CIT Department System Server
 echo ======================================================================
 echo             CIT DEPARTMENT SYSTEM (Flask Dev Server)
 echo ======================================================================
-echo  Unified Database : sbc_internship_db (localhost:3306)
+echo  Unified Database : cit_attendance_db (localhost:3306)
 echo  Server Address   : http://127.0.0.1:5000
 echo  Admin Dashboard  : http://127.0.0.1:5000/admin-login
 echo  Default Login    : username: admin  ^|  password: admin123

@@ -25,10 +25,10 @@ try {
     }
 
     $raw_ojt_id = isset($data['ojt_id']) ? intval($data['ojt_id']) : (isset($data['student_id']) ? intval($data['student_id']) : 0);
-    $raw_shift = isset($data['shift_type']) ? trim($data['shift_type']) : '';
-    $image_base64 = isset($data['image_base64']) ? $data['image_base64'] : '';
-    $custom_date = isset($data['custom_date']) ? trim($data['custom_date']) : '';
-    $custom_time = isset($data['custom_time']) ? trim($data['custom_time']) : '';
+    $raw_shift = isset($data['shift_type']) ? trim($data['shift_type']) : (isset($data['shift']) ? trim($data['shift']) : '');
+    $image_base64 = isset($data['image_base64']) ? $data['image_base64'] : (isset($data['image']) ? $data['image'] : '');
+    $custom_date = isset($data['custom_date']) ? trim($data['custom_date']) : (isset($data['date']) ? trim($data['date']) : '');
+    $custom_time = isset($data['custom_time']) ? trim($data['custom_time']) : (isset($data['time']) ? trim($data['time']) : '');
 
     if ($raw_ojt_id <= 0 || empty($raw_shift)) {
         echo json_encode(["status" => "error", "message" => "Missing required fields (OJT/Student ID or shift action)."]);
@@ -39,47 +39,22 @@ try {
     $current_time = !empty($custom_time) ? $custom_time : date("H:i:s");
 
 
-    $resolved_ojt_id = 0;
+    $resolved_ojt_id = $raw_ojt_id;
     $active_site_id = 1;
-    $stmt_find_ojt = $conn->prepare("SELECT ojt_id, site_id FROM ojt WHERE ojt_id = ? OR student_id = ? LIMIT 1");
-    if ($stmt_find_ojt) {
-        $stmt_find_ojt->bind_param("ii", $raw_ojt_id, $raw_ojt_id);
-        $stmt_find_ojt->execute();
-        $res_find_ojt = $stmt_find_ojt->get_result();
-        if ($row_find_ojt = $res_find_ojt->fetch_assoc()) {
-            $resolved_ojt_id = intval($row_find_ojt['ojt_id']);
-            $active_site_id = intval($row_find_ojt['site_id'] ?? 1);
-        }
-        $stmt_find_ojt->close();
-    }
-
-
-    if ($resolved_ojt_id <= 0) {
-        $ojt_no = "OJT-2026-" . str_pad($raw_ojt_id, 3, "0", STR_PAD_LEFT);
-        $site_id = 1;
-        $stmt_ins = $conn->prepare("INSERT INTO ojt (ojt_no, site_id, student_id, required_hours) VALUES (?, ?, ?, 480)");
-        if ($stmt_ins) {
-            $stmt_ins->bind_param("sii", $ojt_no, $site_id, $raw_ojt_id);
-            if ($stmt_ins->execute()) {
-                $resolved_ojt_id = $conn->insert_id;
-            }
-            $stmt_ins->close();
-        }
-    }
-
-    if ($resolved_ojt_id <= 0) {
-        $resolved_ojt_id = $raw_ojt_id;
-    }
 
     $field_map = [
         'time_in_morning' => 'time_in_morning',
         'Morning_In' => 'time_in_morning',
+        'morning_in' => 'time_in_morning',
         'time_out_morning' => 'time_out_morning',
         'Morning_Out' => 'time_out_morning',
+        'morning_out' => 'time_out_morning',
         'time_in_afternoon' => 'time_in_afternoon',
         'Afternoon_In' => 'time_in_afternoon',
+        'afternoon_in' => 'time_in_afternoon',
         'time_out_afternoon' => 'time_out_afternoon',
         'Afternoon_Out' => 'time_out_afternoon',
+        'afternoon_out' => 'time_out_afternoon',
     ];
 
     if (!isset($field_map[$raw_shift])) {
@@ -282,13 +257,13 @@ try {
     $enum_shift = isset($photo_shift_map[$raw_shift]) ? $photo_shift_map[$raw_shift] : 'Morning_In';
 
     if ($existing) {
-        $update_stmt = $conn->prepare("UPDATE attendance SET $column_to_update = ?, site_id = COALESCE(site_id, ?), status = 'Pending', remarks = NULL WHERE attendance_id = ?");
-        $update_stmt->bind_param("sii", $current_time, $active_site_id, $attendance_id);
+        $update_stmt = $conn->prepare("UPDATE attendance SET $column_to_update = ?, student_id = COALESCE(student_id, ?), status = 'Pending', remarks = NULL WHERE attendance_id = ?");
+        $update_stmt->bind_param("sii", $current_time, $resolved_ojt_id, $attendance_id);
         $update_stmt->execute();
         $update_stmt->close();
     } else {
-        $insert_stmt = $conn->prepare("INSERT INTO attendance (date, ojt_id, site_id, $column_to_update, status) VALUES (?, ?, ?, ?, 'Pending')");
-        $insert_stmt->bind_param("siis", $current_date, $resolved_ojt_id, $active_site_id, $current_time);
+        $insert_stmt = $conn->prepare("INSERT INTO attendance (date, student_id, ojt_id, $column_to_update, status) VALUES (?, ?, ?, ?, 'Pending')");
+        $insert_stmt->bind_param("siis", $current_date, $resolved_ojt_id, $resolved_ojt_id, $current_time);
         $insert_stmt->execute();
         $attendance_id = $conn->insert_id;
         $insert_stmt->close();

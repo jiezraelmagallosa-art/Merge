@@ -84,15 +84,9 @@ try {
             $stmt->bind_param("ssii", $course_code, $course_name, $required_hours, $course_id);
             
             if ($stmt->execute()) {
-                // Synchronize required hours to all students currently enrolled in this course
-                $sync_stmt = $conn->prepare("UPDATE ojt o JOIN student s ON o.student_id = s.student_id SET o.required_hours = ? WHERE s.course_id = ?");
-                $sync_stmt->bind_param("ii", $required_hours, $course_id);
-                $sync_stmt->execute();
-                $sync_stmt->close();
-
                 echo json_encode([
                     "status" => "success",
-                    "message" => "Academic program updated successfully with {$required_hours} required curriculum hours."
+                    "message" => "Academic program updated successfully."
                 ]);
             } else {
                 echo json_encode(["status" => "error", "message" => "Database update failed: " . $stmt->error]);

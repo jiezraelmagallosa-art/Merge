@@ -45,16 +45,14 @@ try {
             DATE_FORMAT(j.reviewed_at, '%M %d, %Y %h:%i %p') AS formatted_reviewed_at,
             j.created_at,
             j.updated_at,
-            ts.site_name,
-            ts.location AS site_location,
+            'CIT Event' AS site_name,
+            'CIT Campus' AS site_location,
             a.time_in_morning,
             a.time_out_morning,
             a.time_in_afternoon,
             a.time_out_afternoon,
             a.status AS attendance_status
         FROM daily_journal j
-        LEFT JOIN ojt o ON j.ojt_id = o.ojt_id
-        LEFT JOIN training_site ts ON o.site_id = ts.site_id
         LEFT JOIN attendance a ON j.attendance_id = a.attendance_id
         WHERE j.student_id = ?
         ORDER BY j.entry_date DESC, j.journal_id DESC

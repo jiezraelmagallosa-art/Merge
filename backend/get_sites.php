@@ -1,8 +1,8 @@
 <?php
 /**
- * SBC Internship Attendance System - Backend API
+ * SBC Attendance System - Backend API
  * Endpoint: get_sites.php
- * Fetches all training/intern sites for student registration selection.
+ * In CIT Event Attendance System, training sites are replaced with standard event venues.
  */
 
 ini_set('display_errors', 0);
@@ -18,28 +18,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-require_once 'db_connect.php';
-
-$query = "SELECT site_id, site_code, site_name, location FROM training_site ORDER BY site_name ASC";
-$result = $conn->query($query);
-
-$sites = [];
-if ($result && $result->num_rows > 0) {
-    while ($row = $result->fetch_assoc()) {
-        $sites[] = [
-            "site_id" => intval($row['site_id']),
-            "site_code" => $row['site_code'],
-            "site_name" => $row['site_name'],
-            "location" => $row['location'] ?? 'M\'lang, Cotabato',
-            "display_name" => $row['site_name'] . " (" . ($row['location'] ?? 'M\'lang, Cotabato') . ")"
-        ];
-    }
-}
+$sites = [
+    [
+        "site_id" => 1,
+        "site_code" => "CIT-MAIN",
+        "site_name" => "CIT Department / Campus Hall",
+        "location" => "Main Campus",
+        "display_name" => "CIT Department / Campus Hall (Main Campus)"
+    ]
+];
 
 echo json_encode([
     "status" => "success",
     "data" => $sites
 ]);
-
-$conn->close();
 ?>

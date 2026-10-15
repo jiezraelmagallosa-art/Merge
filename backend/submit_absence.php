@@ -32,17 +32,7 @@ if ($student_id <= 0 || empty($date_absent) || empty($reason)) {
 }
 
 
-$ojt_id = 1;
-$stmt_ojt = $conn->prepare("SELECT ojt_id FROM ojt WHERE student_id = ? LIMIT 1");
-if ($stmt_ojt) {
-    $stmt_ojt->bind_param("i", $student_id);
-    $stmt_ojt->execute();
-    $res_ojt = $stmt_ojt->get_result();
-    if ($row_ojt = $res_ojt->fetch_assoc()) {
-        $ojt_id = $row_ojt['ojt_id'];
-    }
-    $stmt_ojt->close();
-}
+$ojt_id = $student_id;
 
 
 $db_doc_path = null;

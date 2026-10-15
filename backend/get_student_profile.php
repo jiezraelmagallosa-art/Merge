@@ -43,18 +43,16 @@ $sql = "SELECT
             u.email AS dean_email,
             c.course_code,
             c.course_name,
-            c.required_hours AS course_required_hours,
-            o.ojt_id,
-            o.ojt_no,
-            o.required_hours,
-            ts.site_code,
-            ts.site_name,
-            ts.location AS site_location
+            0 AS course_required_hours,
+            s.student_id AS ojt_id,
+            CONCAT('CIT-', s.student_number) AS ojt_no,
+            0 AS required_hours,
+            '' AS site_code,
+            'CIT Campus' AS site_name,
+            'CIT Campus' AS site_location
         FROM student s
         LEFT JOIN users u ON s.dean_id = u.user_id
         LEFT JOIN course c ON s.course_id = c.course_id
-        LEFT JOIN ojt o ON s.student_id = o.student_id
-        LEFT JOIN training_site ts ON o.site_id = ts.site_id
         WHERE s.student_id = ?
         LIMIT 1";
 
@@ -69,19 +67,15 @@ if (!$result || $result->num_rows === 0) {
 }
 
 $profile = $result->fetch_assoc();
-$ojt_id = $profile['ojt_id'] ?? 0;
+$ojt_id = $profile['student_id'] ?? 0;
 
+$total_minutes = 0;
+$total_rendered_hours = 0;
+$remaining_minutes = 0;
 
-require_once 'site_helper.php';
-$site_breakdown_data = getStudentSiteBreakdown($conn, $student_id);
-
-$total_minutes = $site_breakdown_data['total_minutes'];
-$total_rendered_hours = $site_breakdown_data['total_hours'];
-$remaining_minutes = $site_breakdown_data['remaining_minutes'];
-
-// Count total unique attendance days across all sites
-$days_stmt = $conn->prepare("SELECT COUNT(DISTINCT a.date) as total_days FROM attendance a JOIN ojt o ON a.ojt_id = o.ojt_id WHERE o.student_id = ? AND (a.status IS NULL OR a.status != 'Rejected') AND (((a.morning_status IS NULL OR a.morning_status != 'Rejected') AND a.time_in_morning IS NOT NULL) OR ((a.afternoon_status IS NULL OR a.afternoon_status != 'Rejected') AND a.time_in_afternoon IS NOT NULL))");
-$days_stmt->bind_param("i", $student_id);
+// Count total unique attendance days
+$days_stmt = $conn->prepare("SELECT COUNT(DISTINCT a.date) as total_days FROM attendance a WHERE (a.student_id = ? OR a.ojt_id = ?) AND (a.status IS NULL OR a.status != 'Rejected')");
+$days_stmt->bind_param("ii", $student_id, $student_id);
 $days_stmt->execute();
 $total_days = intval($days_stmt->get_result()->fetch_assoc()['total_days'] ?? 0);
 $days_stmt->close();

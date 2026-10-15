@@ -40,41 +40,11 @@ try {
         exit();
     }
 
-    // ACTION 1: UPDATE REQUIRED INTERNSHIP HOURS TYPED BY DEAN
+    // ACTION 1: UPDATE REQUIRED INTERNSHIP HOURS (DEPRECATED IN CIT EVENT SYSTEM)
     if ($action === 'update_required_hours') {
-        $required_hours = isset($data['required_hours']) ? intval($data['required_hours']) : 0;
-
-        if ($required_hours <= 0) {
-            echo json_encode(["status" => "error", "message" => "Please enter a valid positive number of required hours."]);
-            exit();
-        }
-
-        // Check if student has an OJT record
-        $check_ojt = $conn->prepare("SELECT ojt_id FROM ojt WHERE student_id = ? LIMIT 1");
-        $check_ojt->bind_param("i", $student_id);
-        $check_ojt->execute();
-        $res_ojt = $check_ojt->get_result();
-
-        if ($res_ojt && $res_ojt->num_rows > 0) {
-            $stmt = $conn->prepare("UPDATE ojt SET required_hours = ? WHERE student_id = ?");
-            $stmt->bind_param("ii", $required_hours, $student_id);
-            $stmt->execute();
-            $stmt->close();
-        } else {
-            // Create OJT record with typed hours
-            $site_id = 1;
-            $ojt_no = "OJT-" . date("Y") . "-" . str_pad($student_id, 4, "0", STR_PAD_LEFT);
-            $stmt = $conn->prepare("INSERT INTO ojt (ojt_no, site_id, student_id, required_hours) VALUES (?, ?, ?, ?)");
-            $stmt->bind_param("siii", $ojt_no, $site_id, $student_id, $required_hours);
-            $stmt->execute();
-            $stmt->close();
-        }
-        $check_ojt->close();
-
         echo json_encode([
             "status" => "success",
-            "message" => "Total required hours adjusted to {$required_hours} hours for this student.",
-            "required_hours" => $required_hours
+            "message" => "CIT Attendance System tracks event presence; hour computation is disabled."
         ]);
         exit();
     }
@@ -88,8 +58,8 @@ try {
             exit();
         }
 
-        // Get course details and its default required hours
-        $c_stmt = $conn->prepare("SELECT course_id, course_code, course_name, COALESCE(required_hours, 480) AS required_hours FROM course WHERE course_id = ? LIMIT 1");
+        // Get course details
+        $c_stmt = $conn->prepare("SELECT course_id, course_code, course_name FROM course WHERE course_id = ? LIMIT 1");
         $c_stmt->bind_param("i", $course_id);
         $c_stmt->execute();
         $c_res = $c_stmt->get_result();
@@ -102,7 +72,6 @@ try {
 
         $course_info = $c_res->fetch_assoc();
         $c_stmt->close();
-        $course_req_hours = intval($course_info['required_hours']);
 
         // Update student course
         $s_stmt = $conn->prepare("UPDATE student SET course_id = ? WHERE student_id = ?");
@@ -110,22 +79,12 @@ try {
         $s_stmt->execute();
         $s_stmt->close();
 
-        // Also sync student OJT required hours to the new course required hours
-        $sync_hours = isset($data['sync_hours']) ? (bool)$data['sync_hours'] : true;
-        if ($sync_hours) {
-            $stmt = $conn->prepare("UPDATE ojt SET required_hours = ? WHERE student_id = ?");
-            $stmt->bind_param("ii", $course_req_hours, $student_id);
-            $stmt->execute();
-            $stmt->close();
-        }
-
         echo json_encode([
             "status" => "success",
-            "message" => "Student academic program updated to {$course_info['course_code']} ({$course_info['course_name']}) with {$course_req_hours} required hours.",
+            "message" => "Student academic program updated to {$course_info['course_code']} ({$course_info['course_name']}).",
             "course_id" => $course_id,
             "course_code" => $course_info['course_code'],
-            "course_name" => $course_info['course_name'],
-            "required_hours" => $course_req_hours
+            "course_name" => $course_info['course_name']
         ]);
         exit();
     }
@@ -191,11 +150,10 @@ try {
             SELECT p.image_path 
             FROM photo p
             JOIN attendance a ON p.attendance_id = a.attendance_id
-            JOIN ojt o ON a.ojt_id = o.ojt_id
-            WHERE o.student_id = ?
+            WHERE a.student_id = ? OR a.ojt_id = ?
         ");
         if ($photo_stmt) {
-            $photo_stmt->bind_param("i", $student_id);
+            $photo_stmt->bind_param("ii", $student_id, $student_id);
             $photo_stmt->execute();
             $p_res = $photo_stmt->get_result();
             while ($p_row = $p_res->fetch_assoc()) {
@@ -232,25 +190,16 @@ try {
         // Photos
         $conn->query("DELETE p FROM photo p 
                       JOIN attendance a ON p.attendance_id = a.attendance_id 
-                      JOIN ojt o ON a.ojt_id = o.ojt_id 
-                      WHERE o.student_id = " . intval($student_id));
+                      WHERE a.student_id = " . intval($student_id) . " OR a.ojt_id = " . intval($student_id));
 
         // Attendance
-        $conn->query("DELETE a FROM attendance a 
-                      JOIN ojt o ON a.ojt_id = o.ojt_id 
-                      WHERE o.student_id = " . intval($student_id));
+        $conn->query("DELETE FROM attendance WHERE student_id = " . intval($student_id) . " OR ojt_id = " . intval($student_id));
 
         // Daily Journals
         $conn->query("DELETE FROM daily_journal WHERE student_id = " . intval($student_id));
 
         // Absence Requests
         $conn->query("DELETE FROM absence_requests WHERE student_id = " . intval($student_id));
-
-        // Site History
-        $conn->query("DELETE FROM student_site_history WHERE student_id = " . intval($student_id));
-
-        // OJT
-        $conn->query("DELETE FROM ojt WHERE student_id = " . intval($student_id));
 
         // Finally, delete the student account
         $del_stmt = $conn->prepare("DELETE FROM student WHERE student_id = ?");

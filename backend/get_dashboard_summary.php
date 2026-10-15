@@ -37,40 +37,21 @@ if ($student_id <= 0) {
 $ojt_id = $student_id;
 $target_hours = 480;
 
-$stmt_ojt = $conn->prepare("SELECT o.ojt_id, COALESCE(o.required_hours, c.required_hours, 480) AS required_hours FROM ojt o LEFT JOIN student s ON o.student_id = s.student_id LEFT JOIN course c ON s.course_id = c.course_id WHERE o.student_id = ? OR o.ojt_id = ? LIMIT 1");
-if ($stmt_ojt) {
-    $stmt_ojt->bind_param("ii", $student_id, $student_id);
-    $stmt_ojt->execute();
-    $res_ojt = $stmt_ojt->get_result();
-    if ($row_ojt = $res_ojt->fetch_assoc()) {
-        $ojt_id = $row_ojt['ojt_id'];
-        $req_h = intval($row_ojt['required_hours']);
-        $target_hours = ($req_h > 0) ? $req_h : 480;
-    }
-    $stmt_ojt->close();
-}
-
-$morning_min = "CASE WHEN (a.status IS NULL OR a.status != 'Rejected') AND (a.morning_status IS NULL OR a.morning_status != 'Rejected') AND a.time_in_morning IS NOT NULL AND a.time_out_morning IS NOT NULL THEN TIMESTAMPDIFF(MINUTE, a.time_in_morning, a.time_out_morning) ELSE 0 END";
-$afternoon_min = "CASE WHEN (a.status IS NULL OR a.status != 'Rejected') AND (a.afternoon_status IS NULL OR a.afternoon_status != 'Rejected') AND a.time_in_afternoon IS NOT NULL AND a.time_out_afternoon IS NOT NULL THEN TIMESTAMPDIFF(MINUTE, a.time_in_afternoon, a.time_out_afternoon) ELSE 0 END";
-
 $query = "SELECT
-            SUM($morning_min + $afternoon_min) as total_minutes,
-            COUNT(DISTINCT CASE WHEN (a.status IS NULL OR a.status != 'Rejected') AND (((a.morning_status IS NULL OR a.morning_status != 'Rejected') AND a.time_in_morning IS NOT NULL) OR ((a.afternoon_status IS NULL OR a.afternoon_status != 'Rejected') AND a.time_in_afternoon IS NOT NULL)) THEN a.date ELSE NULL END) as total_days
+            COUNT(DISTINCT a.date) as total_days
           FROM attendance a
-          LEFT JOIN ojt o ON a.ojt_id = o.ojt_id
-          WHERE a.ojt_id = ? OR o.student_id = ? OR a.ojt_id IN (SELECT ojt_id FROM ojt WHERE student_id = ?)";
+          WHERE (a.student_id = ? OR a.ojt_id = ?) AND (a.status IS NULL OR a.status != 'Rejected')";
 
 $stmt = $conn->prepare($query);
-$stmt->bind_param("iii", $ojt_id, $student_id, $student_id);
+$stmt->bind_param("ii", $student_id, $student_id);
 $stmt->execute();
 $result = $stmt->get_result()->fetch_assoc();
+$stmt->close();
 
-require_once 'site_helper.php';
-$site_breakdown_data = getStudentSiteBreakdown($conn, $student_id);
-
-$total_minutes = $site_breakdown_data['total_minutes'];
-$total_hours = $site_breakdown_data['total_hours'];
-$consumed_mins = $site_breakdown_data['remaining_minutes'];
+$total_days = intval($result['total_days'] ?? 0);
+$total_minutes = 0;
+$total_hours = 0;
+$consumed_mins = 0;
 
 $target_total_minutes = $target_hours * 60;
 $remaining_total_minutes = max(0, $target_total_minutes - $total_minutes);

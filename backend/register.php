@@ -129,12 +129,7 @@ if ($stmt->execute()) {
     $student_id = $conn->insert_id;
     $stmt->close();
 
-    $ojt_no = "OJT-2026-" . str_pad($student_id, 2, "0", STR_PAD_LEFT);
-
-    $stmt_ojt = $conn->prepare("INSERT INTO ojt (ojt_no, site_id, student_id, required_hours) VALUES (?, ?, ?, 480)");
-    $stmt_ojt->bind_param("sii", $ojt_no, $site_id, $student_id);
-    $stmt_ojt->execute();
-    $stmt_ojt->close();
+    // Student registered successfully - ojt assignment omitted as system is for pure event attendance
 
     // ========================================================
     // Synchronize Student Registration to CIT Department System

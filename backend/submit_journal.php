@@ -50,22 +50,22 @@ try {
         $tasks = $learnings;
     }
 
-    // 1. Get active ojt_id for this student
-    $stmt_ojt = $conn->prepare("SELECT ojt_id FROM ojt WHERE student_id = ? LIMIT 1");
-    $stmt_ojt->bind_param("i", $student_id);
-    $stmt_ojt->execute();
-    $res_ojt = $stmt_ojt->get_result();
-    if (!$res_ojt || $res_ojt->num_rows === 0) {
-        echo json_encode(["status" => "error", "message" => "OJT enrollment record not found for student."]);
+    // 1. Verify student exists
+    $stmt_st = $conn->prepare("SELECT student_id FROM student WHERE student_id = ? LIMIT 1");
+    $stmt_st->bind_param("i", $student_id);
+    $stmt_st->execute();
+    $res_st = $stmt_st->get_result();
+    if (!$res_st || $res_st->num_rows === 0) {
+        echo json_encode(["status" => "error", "message" => "Student record not found."]);
         exit();
     }
-    $ojt_id = intval($res_ojt->fetch_assoc()['ojt_id']);
-    $stmt_ojt->close();
+    $stmt_st->close();
+    $ojt_id = $student_id;
 
     // 2. Find attendance_id on this date if one exists
     $attendance_id = null;
-    $stmt_att = $conn->prepare("SELECT attendance_id FROM attendance WHERE ojt_id = ? AND date = ? LIMIT 1");
-    $stmt_att->bind_param("is", $ojt_id, $entry_date);
+    $stmt_att = $conn->prepare("SELECT attendance_id FROM attendance WHERE student_id = ? AND date = ? LIMIT 1");
+    $stmt_att->bind_param("is", $student_id, $entry_date);
     $stmt_att->execute();
     $res_att = $stmt_att->get_result();
     if ($res_att && $row_att = $res_att->fetch_assoc()) {

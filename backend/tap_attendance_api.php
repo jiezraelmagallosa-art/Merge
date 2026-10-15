@@ -53,13 +53,11 @@ try {
         // 1. Look up student by rfid_uid, id_no, or student_number
         $stmt_student = $conn->prepare("
             SELECT s.student_id, s.student_number, s.full_name, s.id_no, s.rfid_uid, s.course_id, s.dean_id,
-                   c.course_code, c.course_name, COALESCE(c.required_hours, 480) AS course_required_hours,
-                   o.ojt_id, o.site_id, COALESCE(o.required_hours, 480) AS ojt_required_hours,
-                   ts.site_name, ts.location AS site_location
+                   c.course_code, c.course_name, 0 AS course_required_hours,
+                   s.student_id AS ojt_id, 1 AS site_id, 0 AS ojt_required_hours,
+                   'CIT Campus' AS site_name, 'CIT Campus' AS site_location
             FROM student s
             LEFT JOIN course c ON s.course_id = c.course_id
-            LEFT JOIN ojt o ON s.student_id = o.student_id
-            LEFT JOIN training_site ts ON o.site_id = ts.site_id
             WHERE s.rfid_uid = ? OR s.id_no = ? OR s.student_number = ?
             LIMIT 1
         ");
@@ -86,32 +84,17 @@ try {
         $stmt_student->close();
 
         $student_id = intval($student['student_id']);
-        $ojt_id = intval($student['ojt_id'] ?? 0);
-        $active_site_id = intval($student['site_id'] ?? 1);
-
-        // Ensure OJT record exists
-        if ($ojt_id <= 0) {
-            $ojt_no = "OJT-2026-" . str_pad($student_id, 3, "0", STR_PAD_LEFT);
-            $stmt_ojt = $conn->prepare("INSERT INTO ojt (ojt_no, site_id, student_id, required_hours) VALUES (?, 1, ?, 480)");
-            if ($stmt_ojt) {
-                $stmt_ojt->bind_param("si", $ojt_no, $student_id);
-                $stmt_ojt->execute();
-                $ojt_id = $conn->insert_id;
-                $stmt_ojt->close();
-            }
-            if ($ojt_id <= 0) {
-                $ojt_id = $student_id;
-            }
-        }
+        $ojt_id = $student_id;
+        $active_site_id = 1;
 
         // 2. Fetch today's existing attendance record
         $stmt_att = $conn->prepare("
             SELECT attendance_id, time_in_morning, time_out_morning, time_in_afternoon, time_out_afternoon, remarks, morning_status, afternoon_status
             FROM attendance
-            WHERE ojt_id = ? AND date = ?
+            WHERE (student_id = ? OR ojt_id = ?) AND date = ?
             LIMIT 1
         ");
-        $stmt_att->bind_param("is", $ojt_id, $today);
+        $stmt_att->bind_param("iis", $student_id, $student_id, $today);
         $stmt_att->execute();
         $att_res = $stmt_att->get_result();
         $existing_att = ($att_res && $att_res->num_rows > 0) ? $att_res->fetch_assoc() : null;
@@ -299,10 +282,10 @@ try {
             $stmt_upd->close();
         } else {
             $stmt_ins = $conn->prepare("
-                INSERT INTO attendance (date, ojt_id, site_id, $target_column, status, morning_status, afternoon_status, remarks)
-                VALUES (?, ?, ?, ?, 'Pending', 'Pending', 'Pending', ?)
+                INSERT INTO attendance (date, student_id, ojt_id, site_id, $target_column, status, morning_status, afternoon_status, remarks)
+                VALUES (?, ?, ?, ?, ?, 'Pending', 'Pending', 'Pending', ?)
             ");
-            $stmt_ins->bind_param("siiss", $today, $ojt_id, $active_site_id, $now_time, $tap_remark);
+            $stmt_ins->bind_param("siiiss", $today, $student_id, $student_id, $active_site_id, $now_time, $tap_remark);
             $stmt_ins->execute();
             $att_id = $conn->insert_id;
             $stmt_ins->close();
@@ -431,12 +414,10 @@ try {
             SELECT a.attendance_id, a.date, a.time_in_morning, a.time_out_morning, a.time_in_afternoon, a.time_out_afternoon,
                    a.status, a.remarks, a.morning_status, a.afternoon_status,
                    s.student_id, s.student_number, s.full_name, s.id_no, s.rfid_uid,
-                   c.course_code, ts.site_name
+                   c.course_code, 'CIT Campus' AS site_name
             FROM attendance a
-            JOIN ojt o ON a.ojt_id = o.ojt_id
-            JOIN student s ON o.student_id = s.student_id
+            JOIN student s ON (a.student_id = s.student_id OR a.ojt_id = s.student_id)
             LEFT JOIN course c ON s.course_id = c.course_id
-            LEFT JOIN training_site ts ON o.site_id = ts.site_id
             WHERE a.date = ?
             ORDER BY a.attendance_id DESC
             LIMIT ?

@@ -24,7 +24,7 @@ try {
         exit();
     }
 
-    $stmt = $conn->prepare("SELECT s.*, u.full_name AS dean_name, u.email AS dean_email, o.ojt_id, o.ojt_no FROM student s LEFT JOIN users u ON s.dean_id = u.user_id LEFT JOIN ojt o ON s.student_id = o.student_id WHERE s.email = ?");
+    $stmt = $conn->prepare("SELECT s.*, u.full_name AS dean_name, u.email AS dean_email, s.student_id AS ojt_id, CONCAT('CIT-', s.student_number) AS ojt_no FROM student s LEFT JOIN users u ON s.dean_id = u.user_id WHERE s.email = ?");
     $stmt->bind_param("s", $email);
     $stmt->execute();
     $result = $stmt->get_result();

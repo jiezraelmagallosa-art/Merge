@@ -48,12 +48,11 @@ $query = "SELECT DISTINCT
             a.afternoon_status,
             a.afternoon_remarks
           FROM attendance a
-          LEFT JOIN ojt o ON a.ojt_id = o.ojt_id
-          WHERE a.ojt_id = ? OR o.student_id = ? OR a.ojt_id IN (SELECT ojt_id FROM ojt WHERE student_id = ?)
+          WHERE a.student_id = ? OR a.ojt_id = ?
           ORDER BY a.date DESC, a.attendance_id DESC";
 
 $stmt = $conn->prepare($query);
-$stmt->bind_param("iii", $param_id, $param_id, $param_id);
+$stmt->bind_param("ii", $param_id, $param_id);
 $stmt->execute();
 $result = $stmt->get_result();
 

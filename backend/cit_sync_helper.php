@@ -140,13 +140,12 @@ if (!function_exists('syncAttendanceToCitSystem')) {
         try {
             ensureCitDepartmentTables($conn);
 
-            // 1. Fetch Student Info from SBC Internship System
+            // 1. Fetch Student Info
             $stmt_s = $conn->prepare("
                 SELECT s.student_id, s.student_number, s.full_name, s.id_no, s.rfid_uid, c.course_code
-                FROM ojt o
-                JOIN student s ON o.student_id = s.student_id
+                FROM student s
                 LEFT JOIN course c ON s.course_id = c.course_id
-                WHERE o.ojt_id = ?
+                WHERE s.student_id = ?
                 LIMIT 1
             ");
             if (!$stmt_s) return false;
@@ -345,12 +344,11 @@ if (!function_exists('syncDeanConfirmationToCitSystem')) {
                 SELECT 
                     a.attendance_id, a.date, a.time_in_morning, a.time_out_morning,
                     a.time_in_afternoon, a.time_out_afternoon, a.status,
-                    a.morning_status, a.afternoon_status, a.ojt_id,
+                    a.morning_status, a.afternoon_status, a.student_id,
                     s.student_id AS sbc_student_id, s.student_number, s.id_no, s.rfid_uid, s.full_name,
                     c.course_code
                 FROM attendance a
-                JOIN ojt o ON a.ojt_id = o.ojt_id
-                JOIN student s ON o.student_id = s.student_id
+                JOIN student s ON (a.student_id = s.student_id OR a.ojt_id = s.student_id)
                 LEFT JOIN course c ON s.course_id = c.course_id
                 WHERE a.attendance_id = ?
                 LIMIT 1
@@ -508,11 +506,12 @@ if (!function_exists('syncStudentOjtAttendanceConfirmationToCit')) {
     function syncStudentOjtAttendanceConfirmationToCit($conn, $student_id, $date, $shift = 'both') {
         if (!$conn || $student_id <= 0) return false;
 
+        $student_id = intval($student_id);
+        $date_esc = $conn->real_escape_string($date);
         $check = $conn->query("
             SELECT a.attendance_id 
             FROM attendance a 
-            JOIN ojt o ON a.ojt_id = o.ojt_id 
-            WHERE o.student_id = $student_id AND a.date = '$date' 
+            WHERE a.student_id = $student_id AND a.date = '$date_esc' 
             ORDER BY a.attendance_id DESC 
             LIMIT 1
         ");

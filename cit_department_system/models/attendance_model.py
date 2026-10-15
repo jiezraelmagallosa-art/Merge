@@ -170,8 +170,7 @@ def get_sbc_dean_attendance_statuses(event_date):
 				a.morning_remarks,
 				a.afternoon_remarks
 			FROM attendance a
-			JOIN ojt o ON a.ojt_id = o.ojt_id
-			JOIN student s ON o.student_id = s.student_id
+			JOIN student s ON (a.student_id = s.student_id OR a.ojt_id = s.student_id)
 			WHERE a.date = %s
 			""",
 			(date_str,)
