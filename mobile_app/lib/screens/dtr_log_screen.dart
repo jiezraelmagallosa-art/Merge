@@ -24,7 +24,7 @@ class DtrLogScreenState extends State<DtrLogScreen> {
   bool _isLoading = true;
   List<dynamic> _logs = [];
 
-  static const Color primaryNavy = Color(0xFF002D56);
+  static const Color primaryNavy = Color(0xFF0F172A);
 
   @override
   void initState() {

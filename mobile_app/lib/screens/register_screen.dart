@@ -232,7 +232,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                       child: ClipOval(
                         child: Image.asset(
-                          'assets/images/sbc_logo.png',
+                          'assets/images/cit_logo.png',
                           fit: BoxFit.contain,
                           errorBuilder: (context, error, stackTrace) => const Icon(
                             Icons.person_add_alt_1_rounded,

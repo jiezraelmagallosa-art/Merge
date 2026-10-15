@@ -231,7 +231,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         child: ClipOval(
                           child: Image.asset(
-                            'assets/images/sbc_logo.png',
+                            'assets/images/cit_logo.png',
                             fit: BoxFit.contain,
                             errorBuilder: (context, error, stackTrace) =>
                                 const Icon(
@@ -245,10 +245,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 12),
                     const Text(
-                      'Southern Baptist College',
+                      'College of Information Technology',
+                      textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 22,
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
                     ),

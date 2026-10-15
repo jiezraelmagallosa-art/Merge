@@ -3,18 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ID Tap Attendance Station — Southern Baptist College</title>
-  <link rel="icon" type="image/png" href="web_admin/assets/images/sbc_logo.png">
+  <title>ID Tap Attendance Station — College of Information Technology</title>
+  <link rel="icon" type="image/png" href="web_admin/assets/images/cit-logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --navy-950: #040d1a;
-      --navy-900: #071b30;
-      --navy-850: #0c243f;
-      --navy-800: #102e52;
-      --navy-700: #194373;
+      --navy-950: #030712;
+      --navy-900: #090d16;
+      --navy-850: #111827;
+      --navy-800: #181f2c;
+      --navy-700: #242c3c;
       --gold-500: #f59e0b;
       --gold-400: #fbbf24;
       --gold-600: #d97706;
@@ -853,9 +853,9 @@
   <!-- Top Navigation Header -->
   <header class="kiosk-topbar">
     <a href="#" class="brand-cluster" onclick="refocusScanner()">
-      <img src="web_admin/assets/images/sbc_logo.png" alt="SBC Logo" class="brand-logo" onerror="this.src='mobile_app/assets/images/sbc_logo.png'">
+      <img src="web_admin/assets/images/cit-logo.png" alt="CIT Logo" class="brand-logo" onerror="this.src='cit_department_system/static/images/cit-logo.png'">
       <div class="brand-text">
-        <h1>Southern Baptist College</h1>
+        <h1>College of Information Technology</h1>
         <p>Student Record ID Tap Terminal</p>
       </div>
     </a>
@@ -1038,7 +1038,7 @@
 
   <!-- Kiosk Footer -->
   <footer class="kiosk-footer">
-    Southern Baptist College Student Record Attendance System &bull; ID Tap Station Terminal &bull;
+    College of Information Technology Student Record Attendance System &bull; ID Tap Station Terminal &bull;
     <a href="web_admin/index.html">Dean Administration Portal</a>
   </footer>
 

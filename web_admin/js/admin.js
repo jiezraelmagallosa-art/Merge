@@ -142,9 +142,9 @@ function setupEventListeners() {
 
   document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', (e) => {
-      e.preventDefault();
       const targetTab = item.getAttribute('data-tab');
       if (targetTab) {
+        e.preventDefault();
         switchTab(targetTab);
       }
     });
@@ -471,7 +471,13 @@ function applyStudentFilters() {
   }
 
   if (currentStudentStatusFilter !== 'ALL') {
-    filtered = filtered.filter(s => (s.status || '').toLowerCase() === currentStudentStatusFilter.toLowerCase());
+    if (currentStudentStatusFilter === 'REGULAR') {
+      filtered = filtered.filter(s => (s.total_absences || 0) === 0);
+    } else if (currentStudentStatusFilter === 'IRREGULAR') {
+      filtered = filtered.filter(s => (s.total_absences || 0) > 0);
+    } else {
+      filtered = filtered.filter(s => (s.status || '').toLowerCase() === currentStudentStatusFilter.toLowerCase());
+    }
   }
 
   if (currentStudentYearLevelFilter !== 'ALL') {
@@ -535,6 +541,11 @@ function renderStudentsTable(students) {
   tbody.innerHTML = students.map(s => {
     const statusBadgeClass = s.status === 'Completed' ? 'badge-success' : 'badge-warning';
     const courseBadge = getCourseBadgeClass(s.course_code);
+    const absences = s.total_absences || 0;
+    const standingBadge = absences === 0
+      ? '<span class="badge" style="background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; font-weight:700;">Regular (0 Absences)</span>'
+      : `<span class="badge" style="background:#fef2f2; color:#991b1b; border:1px solid #fecaca; font-weight:700;">Irregular (${absences} Abs)</span>`;
+
     return `
       <tr>
         <td>
@@ -558,7 +569,7 @@ function renderStudentsTable(students) {
           <div style="font-weight: 700; color: #166534; font-size: 0.95rem;">${s.total_days || 0} Session(s)</div>
           <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem;">Event Presence</div>
         </td>
-        <td><span class="badge badge-success">Active</span></td>
+        <td>${standingBadge}</td>
 
         <td>
           <div style="display:flex; gap:0.4rem; align-items:center;">
@@ -1967,7 +1978,13 @@ function getReportStudents() {
   }
 
   if (selectedReportStatus !== 'ALL') {
-    filtered = filtered.filter(s => (s.status || '').toLowerCase() === selectedReportStatus.toLowerCase());
+    if (selectedReportStatus === 'REGULAR') {
+      filtered = filtered.filter(s => (s.total_absences || 0) === 0);
+    } else if (selectedReportStatus === 'IRREGULAR') {
+      filtered = filtered.filter(s => (s.total_absences || 0) > 0);
+    } else {
+      filtered = filtered.filter(s => (s.status || '').toLowerCase() === selectedReportStatus.toLowerCase());
+    }
   }
 
   if (selectedReportYearLevel !== 'ALL') {
@@ -1991,9 +2008,17 @@ function renderComplianceSummary() {
 
   const targetStudents = getReportStudents();
   const total = targetStudents.length;
-  const completed = targetStudents.filter(s => s.status === 'Completed').length;
-  const inProgress = targetStudents.filter(s => s.status === 'In Progress').length;
-  const totalHours = targetStudents.reduce((acc, s) => acc + s.rendered_hours, 0);
+  const regularCount = targetStudents.filter(s => (s.total_absences || 0) === 0).length;
+  const irregularCount = targetStudents.filter(s => (s.total_absences || 0) > 0).length;
+  const regularPercent = total > 0 ? Math.round((regularCount / total) * 100) : 0;
+
+  // Build program options dynamically from cached courses
+  const programOptionsHtml = `<option value="ALL" ${selectedReportCourse === 'ALL' ? 'selected' : ''}>All Academic Programs</option>` +
+    (cachedCourses || []).map(c => `
+      <option value="${escapeHtml(c.course_code)}" ${selectedReportCourse === c.course_code ? 'selected' : ''}>
+        ${escapeHtml(c.course_code)} - ${escapeHtml(c.course_name)}
+      </option>
+    `).join('');
 
   container.innerHTML = `
     <!-- Multi-Criteria Report Filters Header -->
@@ -2005,23 +2030,19 @@ function renderComplianceSummary() {
             Academic Program
           </label>
           <select id="reportCourseFilterSelect" class="form-control" style="width: 100%; height: 38px; font-size: 0.83rem; font-weight: 600; color: #1e293b; border: 1px solid #cbd5e1; border-radius: 6px; padding: 0 0.75rem;" onchange="filterReportByCourse(this.value)">
-            <option value="ALL" ${selectedReportCourse === 'ALL' ? 'selected' : ''}>All Academic Programs</option>
-            <option value="BSCS" ${selectedReportCourse === 'BSCS' ? 'selected' : ''}>BSCS - Computer Science</option>
-            <option value="BSIS" ${selectedReportCourse === 'BSIS' ? 'selected' : ''}>BSIS - Information Systems</option>
-            <option value="BLIS" ${selectedReportCourse === 'BLIS' ? 'selected' : ''}>BLIS - Library &amp; Info Science</option>
+            ${programOptionsHtml}
           </select>
         </div>
 
-        <!-- Status -->
+        <!-- Attendance Standing Filter -->
         <div>
           <label for="reportStatusFilterSelect" style="display: block; font-size: 0.73rem; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.35rem;">
-            Compliance Status
+            Attendance Standing
           </label>
           <select id="reportStatusFilterSelect" class="form-control" style="width: 100%; height: 38px; font-size: 0.83rem; font-weight: 600; color: #1e293b; border: 1px solid #cbd5e1; border-radius: 6px; padding: 0 0.75rem;" onchange="filterReportByStatus(this.value)">
-            <option value="ALL" ${selectedReportStatus === 'ALL' ? 'selected' : ''}>All Statuses</option>
-            <option value="In Progress" ${selectedReportStatus === 'In Progress' ? 'selected' : ''}>In Progress</option>
-            <option value="Completed" ${selectedReportStatus === 'Completed' ? 'selected' : ''}>Completed (Goal Met)</option>
-            <option value="Not Started" ${selectedReportStatus === 'Not Started' ? 'selected' : ''}>Not Started (0h)</option>
+            <option value="ALL" ${selectedReportStatus === 'ALL' ? 'selected' : ''}>All Standings</option>
+            <option value="REGULAR" ${selectedReportStatus === 'REGULAR' ? 'selected' : ''}>Regular Attendees (0 Absences)</option>
+            <option value="IRREGULAR" ${selectedReportStatus === 'IRREGULAR' ? 'selected' : ''}>Irregular Attendees (1+ Absences)</option>
           </select>
         </div>
 
@@ -2057,24 +2078,24 @@ function renderComplianceSummary() {
     <!-- Executive KPI Grid -->
     <div class="kpi-grid" style="grid-template-columns: repeat(3, 1fr);">
       <div class="kpi-card">
-        <div class="kpi-title">Selected Program Students</div>
+        <div class="kpi-title">Total Enrolled Students</div>
         <div class="kpi-value-row">
           <div class="kpi-value">${total}</div>
           <span class="kpi-badge gold">${selectedReportCourse === 'ALL' ? 'All Programs' : selectedReportCourse}</span>
         </div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-title">Completed (Goal Hours)</div>
+        <div class="kpi-title">Regular Attendees</div>
         <div class="kpi-value-row">
-          <div class="kpi-value">${completed}</div>
-          <span class="kpi-badge green">Fulfilled</span>
+          <div class="kpi-value">${regularCount}</div>
+          <span class="kpi-badge green">${regularPercent}% No Absences</span>
         </div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-title">Active In-Progress</div>
+        <div class="kpi-title">With Absences (Irregular)</div>
         <div class="kpi-value-row">
-          <div class="kpi-value">${inProgress}</div>
-          <span class="kpi-badge gold">Tracking</span>
+          <div class="kpi-value">${irregularCount}</div>
+          <span class="kpi-badge ${irregularCount > 0 ? 'gold' : 'green'}">${irregularCount > 0 ? irregularCount + ' Flagged' : 'None'}</span>
         </div>
       </div>
     </div>
@@ -2082,7 +2103,7 @@ function renderComplianceSummary() {
     <!-- Report Table Card -->
     <div class="card mt-3">
       <div class="card-header" style="display: flex; align-items: center; justify-content: space-between;">
-        <h3>Institutional Compliance Summary Report ${selectedReportCourse !== 'ALL' ? `(${selectedReportCourse})` : ''}</h3>
+        <h3>Institutional Attendance &amp; Standing Summary Report ${selectedReportCourse !== 'ALL' ? `(${selectedReportCourse})` : ''}</h3>
         <span class="badge badge-navy" style="font-size: 0.8rem;">${total} Student Record(s)</span>
       </div>
       <div class="table-responsive">
@@ -2093,30 +2114,33 @@ function renderComplianceSummary() {
               <th>Student #</th>
               <th>Course</th>
               <th>Year Level</th>
-              <th>Hours Rendered</th>
-              <th>Required Goal</th>
-              <th>Compliance %</th>
-              <th>Status</th>
+              <th>Attendance Standing</th>
             </tr>
           </thead>
           <tbody>
             ${targetStudents.length === 0 ? `
-              <tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">No students enrolled in this course category.</td></tr>
+              <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2rem;">No students found matching current criteria.</td></tr>
             ` : targetStudents.map(s => {
-    const courseBadge = getCourseBadgeClass(s.course_code);
-    return `
+              const courseBadge = getCourseBadgeClass(s.course_code);
+              const absences = s.total_absences || 0;
+
+              let attendanceBadge = '';
+              if (absences === 0) {
+                attendanceBadge = '<span class="badge" style="background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; font-weight:700;">Regular Attendee (0 Absences)</span>';
+              } else {
+                attendanceBadge = `<span class="badge" style="background:#fef2f2; color:#991b1b; border:1px solid #fecaca; font-weight:700;">Irregular Attendee (${absences} Absence${absences > 1 ? 's' : ''})</span>`;
+              }
+
+              return `
                 <tr>
                   <td style="font-weight:700;">${escapeHtml(s.full_name)}</td>
-                  <td>${s.student_number}</td>
-                  <td><span class="badge ${courseBadge}">${s.course_code}</span></td>
-                  <td style="font-weight: 600;">Year ${escapeHtml(s.year_level || '4')}</td>
-                  <td style="font-weight:700;">${s.rendered_hours}h ${s.rendered_minutes}m</td>
-                  <td>${s.required_hours}h</td>
-                  <td>${s.progress_percentage}%</td>
-                  <td><span class="badge ${s.status === 'Completed' ? 'badge-success' : 'badge-warning'}">${s.status}</span></td>
+                  <td style="font-family:monospace; font-weight:600; color:#475569;">${escapeHtml(s.student_number)}</td>
+                  <td><span class="badge ${courseBadge}">${escapeHtml(s.course_code)}</span></td>
+                  <td style="font-weight: 600;">${formatYearLevelDisplay(s.year_level)}</td>
+                  <td>${attendanceBadge}</td>
                 </tr>
               `;
-  }).join('')}
+            }).join('')}
           </tbody>
         </table>
       </div>
@@ -2138,7 +2162,7 @@ function getLogoDataUrl() {
   } catch (e) {
     console.warn('Could not extract logo data URL:', e);
   }
-  return 'assets/images/sbc_logo.png';
+  return 'assets/images/cit-logo.png';
 }
 
 async function generatePDFReport() {
@@ -2146,20 +2170,20 @@ async function generatePDFReport() {
   if (targetStudents.length === 0) return alert('No student records found to generate PDF report.');
 
   const total = targetStudents.length;
-  const completed = targetStudents.filter(s => s.status === 'Completed').length;
-  const inProgress = targetStudents.filter(s => s.status === 'In Progress').length;
-  const totalHours = targetStudents.reduce((acc, s) => acc + s.rendered_hours, 0);
+  const rfidCount = targetStudents.filter(s => s.rfid_uid && s.rfid_uid.trim()).length;
+  const activeCount = targetStudents.filter(s => (s.total_days || 0) > 0).length;
 
-  let programTitle = 'All Academic Programs (BSCS, BSIS, BLIS)';
-  if (selectedReportCourse === 'BSCS') programTitle = 'BSCS - Bachelor of Science in Computer Science';
-  if (selectedReportCourse === 'BSIS') programTitle = 'BSIS - Bachelor of Science in Information Systems';
-  if (selectedReportCourse === 'BLIS') programTitle = 'BLIS - Bachelor of Library & Information Science';
+  let programTitle = 'All Academic Programs';
+  if (selectedReportCourse !== 'ALL') {
+    const cObj = (cachedCourses || []).find(c => c.course_code === selectedReportCourse);
+    programTitle = cObj ? `${cObj.course_code} - ${cObj.course_name}` : selectedReportCourse;
+  }
 
   const deanName = currentUser ? currentUser.full_name : 'Dean Admin';
-  const deanEmail = currentUser ? currentUser.email : 'dean@sbc.edu.ph';
+  const deanEmail = currentUser ? currentUser.email : 'dean@cit.edu.ph';
   const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   const dateTag = new Date().toISOString().slice(0, 10);
-  const pdfFilename = `SBC_OJT_Compliance_Report_${selectedReportCourse}_${dateTag}.pdf`;
+  const pdfFilename = `CIT_Attendance_Standing_Report_${selectedReportCourse}_${dateTag}.pdf`;
   const logoUrl = getLogoDataUrl();
 
   const offscreenContainer = document.createElement('div');
@@ -2185,11 +2209,11 @@ async function generatePDFReport() {
   reportWrapper.innerHTML = `
     <div style="display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 2px solid #002d56; padding-bottom: 8px; margin-bottom: 10px;">
       <div style="display: flex; align-items: center; gap: 10px;">
-        <img src="${logoUrl}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: contain; flex-shrink: 0;" alt="SBC Logo" onerror="this.style.display='none';">
+        <img src="${logoUrl}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: contain; flex-shrink: 0;" alt="CIT Logo" onerror="this.style.display='none';">
         <div>
-          <div style="font-size: 14px; font-weight: 800; color: #002d56; text-transform: uppercase; letter-spacing: 0.3px; margin: 0;">Southern Baptist College</div>
+          <div style="font-size: 14px; font-weight: 800; color: #002d56; text-transform: uppercase; letter-spacing: 0.3px; margin: 0;">College of Information Technology</div>
           <div style="font-size: 9.5px; font-weight: 600; color: #475569; margin-top: 2px;">Office of Student Affairs &amp; Academic Records</div>
-          <div style="font-size: 10.5px; font-weight: 700; color: #d97706; text-transform: uppercase; margin-top: 2px;">Institutional Student Attendance &amp; Records Report</div>
+          <div style="font-size: 10.5px; font-weight: 700; color: #d97706; text-transform: uppercase; margin-top: 2px;">Institutional Student Attendance &amp; Standing Report</div>
         </div>
       </div>
       <div style="text-align: right; font-size: 9px; color: #64748b; flex-shrink: 0; padding-left: 10px;">
@@ -2201,46 +2225,40 @@ async function generatePDFReport() {
     <div style="display: flex; gap: 8px; background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 8px 12px; border-radius: 5px; margin-bottom: 14px;">
       <div style="flex: 1; font-size: 9.5px;">
         <div><strong style="color: #002d56;">Target Program Scope:</strong> ${escapeHtml(programTitle)}</div>
-        <div style="margin-top: 2px;"><strong style="color: #002d56;">Required Target Goal:</strong> Per-course defined hours</div>
+        <div style="margin-top: 2px;"><strong style="color: #002d56;">Student Roster:</strong> ${total} Enrolled | ${targetStudents.filter(s => (s.total_absences || 0) === 0).length} Regular Attendees | ${targetStudents.filter(s => (s.total_absences || 0) > 0).length} Irregular Attendees</div>
       </div>
       <div style="flex: 1; font-size: 9.5px;">
         <div><strong style="color: #002d56;">Issued By:</strong> ${escapeHtml(deanName)} (${escapeHtml(deanEmail)})</div>
-        <div style="margin-top: 2px;"><strong style="color: #002d56;">Report Type:</strong> Official Institutional Verification Summary</div>
+        <div style="margin-top: 2px;"><strong style="color: #002d56;">Report Type:</strong> Official Institutional Attendance &amp; Standing Record</div>
       </div>
     </div>
 
     <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 8.5px;">
       <thead>
         <tr style="background-color: #002d56; color: #ffffff;">
-          <th style="width: 22%; padding: 6px 4px; text-align: left; font-weight: 700; font-size: 8px; text-transform: uppercase; border: 1px solid #002d56;">Student Name</th>
-          <th style="width: 12%; padding: 6px 4px; text-align: left; font-weight: 700; font-size: 8px; text-transform: uppercase; border: 1px solid #002d56;">Student #</th>
-          <th style="width: 8%; padding: 6px 4px; text-align: center; font-weight: 700; font-size: 8px; text-transform: uppercase; border: 1px solid #002d56;">Course</th>
-          <th style="width: 20%; padding: 6px 4px; text-align: left; font-weight: 700; font-size: 8px; text-transform: uppercase; border: 1px solid #002d56;">Facility Placement</th>
-          <th style="width: 13%; padding: 6px 4px; text-align: center; font-weight: 700; font-size: 8px; text-transform: uppercase; border: 1px solid #002d56;">Hours Rendered</th>
-          <th style="width: 11%; padding: 6px 4px; text-align: center; font-weight: 700; font-size: 8px; text-transform: uppercase; border: 1px solid #002d56;">Target Goal</th>
-          <th style="width: 7%; padding: 6px 4px; text-align: center; font-weight: 700; font-size: 8px; text-transform: uppercase; border: 1px solid #002d56;">Progress</th>
-          <th style="width: 7%; padding: 6px 4px; text-align: center; font-weight: 700; font-size: 8px; text-transform: uppercase; border: 1px solid #002d56;">Status</th>
+          <th style="width: 32%; padding: 6px 4px; text-align: left; font-weight: 700; font-size: 8px; text-transform: uppercase; border: 1px solid #002d56;">Student Name</th>
+          <th style="width: 18%; padding: 6px 4px; text-align: left; font-weight: 700; font-size: 8px; text-transform: uppercase; border: 1px solid #002d56;">Student #</th>
+          <th style="width: 15%; padding: 6px 4px; text-align: center; font-weight: 700; font-size: 8px; text-transform: uppercase; border: 1px solid #002d56;">Course</th>
+          <th style="width: 15%; padding: 6px 4px; text-align: center; font-weight: 700; font-size: 8px; text-transform: uppercase; border: 1px solid #002d56;">Year Level</th>
+          <th style="width: 20%; padding: 6px 4px; text-align: center; font-weight: 700; font-size: 8px; text-transform: uppercase; border: 1px solid #002d56;">Attendance Standing</th>
         </tr>
       </thead>
       <tbody>
         ${targetStudents.length === 0 ? `
-          <tr><td colspan="8" style="text-align: center; padding: 15px; color: #64748b; font-size: 9px; border: 1px solid #cbd5e1;">No student records found.</td></tr>
-        ` : targetStudents.map((s, idx) => `
+          <tr><td colspan="5" style="text-align: center; padding: 15px; color: #64748b; font-size: 9px; border: 1px solid #cbd5e1;">No student records found.</td></tr>
+        ` : targetStudents.map((s, idx) => {
+          const absences = s.total_absences || 0;
+          const standingText = absences === 0 ? 'Regular Attendee (0 Absences)' : `Irregular Attendee (${absences} Absence${absences > 1 ? 's' : ''})`;
+          return `
           <tr style="background-color: ${idx % 2 === 1 ? '#f8fafc' : '#ffffff'};">
             <td style="border: 1px solid #cbd5e1; padding: 5px 4px; font-weight: 700; color: #1e293b; font-size: 8px; word-break: break-word;">${escapeHtml(s.full_name)}</td>
-            <td style="border: 1px solid #cbd5e1; padding: 5px 4px; color: #475569; font-size: 8px;">${escapeHtml(s.student_number)}</td>
+            <td style="border: 1px solid #cbd5e1; padding: 5px 4px; color: #475569; font-size: 8px; font-family: monospace;">${escapeHtml(s.student_number)}</td>
             <td style="border: 1px solid #cbd5e1; padding: 5px 4px; font-weight: 700; color: #002d56; font-size: 8px; text-align: center;">${escapeHtml(s.course_code)}</td>
-            <td style="border: 1px solid #cbd5e1; padding: 5px 4px; color: #475569; font-size: 8px; word-break: break-word;">${escapeHtml(s.site_name || 'Unassigned')}</td>
-            <td style="border: 1px solid #cbd5e1; padding: 5px 4px; font-weight: 700; color: #002d56; font-size: 8px; text-align: center;">${s.rendered_hours || 0}h ${s.rendered_minutes || 0}m</td>
-            <td style="border: 1px solid #cbd5e1; padding: 5px 4px; color: #475569; font-size: 8px; text-align: center;">${s.required_hours || 0}h</td>
-            <td style="border: 1px solid #cbd5e1; padding: 5px 4px; font-weight: 700; font-size: 8px; text-align: center;">${s.progress_percentage || 0}%</td>
-            <td style="border: 1px solid #cbd5e1; padding: 5px 4px; text-align: center;">
-              <span style="display: inline-block; padding: 2px 4px; border-radius: 3px; font-size: 7.5px; font-weight: 700; background-color: ${s.status === 'Completed' ? '#dcfce7' : '#fef3c7'}; color: ${s.status === 'Completed' ? '#15803d' : '#b45309'}; border: 1px solid ${s.status === 'Completed' ? '#86efac' : '#fde047'};">
-                ${escapeHtml(s.status || 'In Progress')}
-              </span>
-            </td>
+            <td style="border: 1px solid #cbd5e1; padding: 5px 4px; color: #475569; font-size: 8px; text-align: center;">${formatYearLevelDisplay(s.year_level)}</td>
+            <td style="border: 1px solid #cbd5e1; padding: 5px 4px; text-align: center; font-weight: 700; color: ${absences === 0 ? '#065f46' : '#991b1b'}; font-size: 7.5px;">${standingText}</td>
           </tr>
-        `).join('')}
+          `;
+        }).join('')}
       </tbody>
     </table>
 
@@ -2253,7 +2271,7 @@ async function generatePDFReport() {
     </div>
 
     <div style="margin-top: 16px; border-top: 1px solid #e2e8f0; padding-top: 5px; text-align: center; font-size: 7.5px; color: #94a3b8;">
-      &copy; ${new Date().getFullYear()} Southern Baptist College &bull; Official Computer Generated OJT Compliance Document
+      &copy; ${new Date().getFullYear()} College of Information Technology &bull; Official Computer Generated Institutional Attendance &amp; Standing Record
     </div>
   `;
 
@@ -2361,9 +2379,9 @@ async function downloadStudentDtrPdf(studentId) {
   dtrWrapper.innerHTML = `
     <div style="display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 2px solid #002d56; padding-bottom: 8px; margin-bottom: 10px;">
       <div style="display: flex; align-items: center; gap: 10px;">
-        <img src="${logoUrl}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: contain; flex-shrink: 0;" alt="SBC Logo" onerror="this.style.display='none';">
+        <img src="${logoUrl}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: contain; flex-shrink: 0;" alt="CIT Logo" onerror="this.style.display='none';">
         <div>
-          <div style="font-size: 14px; font-weight: 800; color: #002d56; text-transform: uppercase; letter-spacing: 0.3px; margin: 0;">Southern Baptist College</div>
+          <div style="font-size: 14px; font-weight: 800; color: #002d56; text-transform: uppercase; letter-spacing: 0.3px; margin: 0;">College of Information Technology</div>
           <div style="font-size: 9.5px; font-weight: 600; color: #475569; margin-top: 2px;">Office of Student Affairs &amp; Academic Records</div>
           <div style="font-size: 10.5px; font-weight: 700; color: #047857; text-transform: uppercase; margin-top: 2px;">Official Daily Time Record (DTR)</div>
         </div>
@@ -2383,8 +2401,7 @@ async function downloadStudentDtrPdf(studentId) {
       </div>
       <div style="flex: 1; font-size: 9.5px;">
         <div><strong style="color: #002d56;">Active Facility:</strong> ${escapeHtml(s.site_name)} (${escapeHtml(s.site_location || '')})</div>
-        <div style="margin-top: 2px;"><strong style="color: #002d56;">Total Rendered:</strong> ${s.formatted_time}</div>
-        <div style="margin-top: 2px;"><strong style="color: #002d56;">Required Goal:</strong> ${s.required_hours} hours (${s.progress_percentage}%)</div>
+        <div style="margin-top: 2px;"><strong style="color: #002d56;">Attendance Standing:</strong> ${(s.total_absences || 0) === 0 ? '<span style="color:#065f46; font-weight:700;">Regular Attendee (0 Absences)</span>' : `<span style="color:#991b1b; font-weight:700;">Irregular Attendee (${s.total_absences || 0} Absence(s))</span>`}</div>
       </div>
     </div>
 
@@ -2433,7 +2450,7 @@ async function downloadStudentDtrPdf(studentId) {
     </div>
 
     <div style="margin-top: 16px; border-top: 1px solid #e2e8f0; padding-top: 5px; text-align: center; font-size: 7.5px; color: #94a3b8;">
-      &copy; ${new Date().getFullYear()} Southern Baptist College &bull; Official Computer Generated Daily Time Record
+      &copy; ${new Date().getFullYear()} College of Information Technology &bull; Official Computer Generated Daily Time Record
     </div>
   `;
 
@@ -2511,16 +2528,18 @@ function openPrintWindowFallback(innerHtml, title) {
 function exportCSVReport() {
   const targetStudents = getReportStudents();
   if (targetStudents.length === 0) return alert('No data to export.');
-  let csv = 'Student Name,Student Number,Course,Year Level,Hours Rendered,Target Goal,Progress %,Status\n';
+  let csv = 'Student Name,Student Number,Course,Year Level,Attendance Standing\n';
   targetStudents.forEach(s => {
-    csv += `"${s.full_name}","${s.student_number}","${s.course_code}","Year ${s.year_level || '4'}","${s.rendered_hours}h ${s.rendered_minutes}m","${s.required_hours}h","${s.progress_percentage}%","${s.status}"\n`;
+    const absences = s.total_absences || 0;
+    const standing = absences === 0 ? 'Regular Attendee (0 Absences)' : `Irregular Attendee (${absences} Absence${absences > 1 ? 's' : ''})`;
+    csv += `"${s.full_name}","${s.student_number}","${s.course_code}","${formatYearLevelDisplay(s.year_level)}","${standing}"\n`;
   });
 
   const blob = new Blob([csv], { type: 'text/csv' });
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `SBC_Compliance_Report_${selectedReportCourse}_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.download = `CIT_Attendance_Standing_Report_${selectedReportCourse}_${new Date().toISOString().slice(0, 10)}.csv`;
   a.click();
 }
 
@@ -3637,6 +3656,9 @@ async function openStudentDrawer(studentId) {
   const courseBadge = getCourseBadgeClass(s.course_code);
   const statusBadgeClass = s.status === 'Completed' ? 'badge-success' : 'badge-warning';
 
+  const drawerAbsences = s.total_absences || 0;
+  const isRegular = drawerAbsences === 0;
+
   container.innerHTML = `
     <div style="padding: 1rem; background-color: var(--bg-canvas); border-radius: var(--radius-sm); border: 1px solid var(--border-light); margin-bottom: 1.25rem;">
       <div style="font-size: 1.15rem; font-weight: 800; color: var(--navy-primary);">${escapeHtml(s.full_name)}</div>
@@ -3646,17 +3668,23 @@ async function openStudentDrawer(studentId) {
       <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.15rem;">Email Address: <strong>${escapeHtml(s.email)}</strong></div>
     </div>
 
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
-      <div style="border: 1px solid var(--border-light); padding: 0.85rem; border-radius: var(--radius-sm);">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+      <div style="border: 1px solid var(--border-light); padding: 0.85rem; border-radius: var(--radius-sm); background: #ffffff;">
         <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.3rem;">Academic Program</div>
         <div><span class="badge ${courseBadge}">${escapeHtml(s.course_code)}</span></div>
         <div style="font-size: 0.8rem; font-weight: 600; color: var(--navy-primary); margin-top: 0.3rem;">${escapeHtml(s.course_name)}</div>
       </div>
 
-      <div style="border: 1px solid var(--border-light); padding: 0.85rem; border-radius: var(--radius-sm);">
+      <div style="border: 1px solid var(--border-light); padding: 0.85rem; border-radius: var(--radius-sm); background: #ffffff;">
         <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.3rem;">Event Attendance Presence</div>
         <div style="font-size: 1.15rem; font-weight: 800; color: #166534;">${s.total_days || 0} Sessions</div>
         <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.15rem;">Recorded Event Presence</div>
+      </div>
+
+      <div style="border: 1px solid ${isRegular ? '#a7f3d0' : '#fecaca'}; background: ${isRegular ? '#ecfdf5' : '#fef2f2'}; padding: 0.85rem; border-radius: var(--radius-sm);">
+        <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: ${isRegular ? '#065f46' : '#991b1b'}; margin-bottom: 0.3rem;">Attendance Standing</div>
+        <div style="font-size: 1.05rem; font-weight: 800; color: ${isRegular ? '#065f46' : '#991b1b'};">${isRegular ? 'Regular Attendee' : 'Irregular Attendee'}</div>
+        <div style="font-size: 0.78rem; color: ${isRegular ? '#047857' : '#b91c1c'}; margin-top: 0.15rem;">${isRegular ? '0 Absences (Perfect Attendance)' : `${drawerAbsences} Absence(s) on Record`}</div>
       </div>
     </div>
 
@@ -3784,7 +3812,7 @@ function renderCoursesTable(courses) {
   if (!tbody) return;
 
   if (courses.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:2rem;">No academic programs registered yet.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:2rem;">No academic programs registered yet.</td></tr>`;
     return;
   }
 
@@ -3794,11 +3822,6 @@ function renderCoursesTable(courses) {
       <tr>
         <td><span class="badge ${badgeClass}">${escapeHtml(c.course_code)}</span></td>
         <td style="font-weight:600;color:var(--navy-primary);">${escapeHtml(c.course_name)}</td>
-        <td>
-          <span class="badge-hours" style="background:var(--bg-canvas);border:1px solid var(--border-light);padding:0.3rem 0.7rem;border-radius:var(--radius-sm);font-weight:700;color:var(--navy-primary);font-size:0.88rem;">
-            ⏱ ${c.required_hours} hrs
-          </span>
-        </td>
         <td><span class="badge badge-success">${c.enrolled_students} Student(s)</span></td>
         <td>
           <button class="btn btn-outline" style="margin-right:0.4rem;" onclick='openEditCourseModal(${JSON.stringify(c).replace(/'/g, "&apos;")})'>Edit</button>
@@ -3817,7 +3840,8 @@ function openAddCourseModal() {
   document.getElementById('courseIdInput').value = '';
   document.getElementById('courseCodeInput').value = '';
   document.getElementById('courseNameInput').value = '';
-  document.getElementById('courseRequiredHoursInput').value = '480';
+  const hoursInput = document.getElementById('courseRequiredHoursInput');
+  if (hoursInput) hoursInput.value = '480';
   const delBtn = document.getElementById('deleteCourseModalBtn');
   if (delBtn) delBtn.style.display = 'none';
   document.getElementById('courseModal').classList.add('active');
@@ -3829,7 +3853,8 @@ function openEditCourseModal(course) {
   document.getElementById('courseIdInput').value = course.course_id;
   document.getElementById('courseCodeInput').value = course.course_code;
   document.getElementById('courseNameInput').value = course.course_name;
-  document.getElementById('courseRequiredHoursInput').value = course.required_hours;
+  const hoursInput = document.getElementById('courseRequiredHoursInput');
+  if (hoursInput) hoursInput.value = course.required_hours || '480';
   const delBtn = document.getElementById('deleteCourseModalBtn');
   if (delBtn) delBtn.style.display = 'inline-block';
   document.getElementById('courseModal').classList.add('active');
@@ -3885,10 +3910,11 @@ async function saveCourse(e) {
   const course_id = document.getElementById('courseIdInput').value;
   const course_code = document.getElementById('courseCodeInput').value.trim().toUpperCase();
   const course_name = document.getElementById('courseNameInput').value.trim();
-  const required_hours = parseInt(document.getElementById('courseRequiredHoursInput').value, 10);
+  const hoursInput = document.getElementById('courseRequiredHoursInput');
+  const required_hours = hoursInput ? (parseInt(hoursInput.value, 10) || 480) : 480;
 
-  if (!course_code || !course_name || isNaN(required_hours) || required_hours < 1) {
-    alert('Please fill in all fields. Required hours must be a positive number.');
+  if (!course_code || !course_name) {
+    alert('Please enter both the Program Code and Academic Program Name.');
     return;
   }
 

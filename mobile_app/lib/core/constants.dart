@@ -4,11 +4,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io' show Platform;
 
 class AppColors {
-  static const Color primaryNavy = Color(0xFF002D56);
-  static const Color accentGold = Color(0xFFF59E0B);
-  static const Color backgroundLight = Color(0xFFF8FAFC);
-  static const Color cardWhite = Color(0xFFFFFFFF);
-  static const Color textDark = Color(0xFF1E293B);
+  // CIT Color Palette: Yellow, Black, and White
+  static const Color primaryNavy = Color(0xFF0F172A); // CIT Deep Obsidian Black
+  static const Color primaryBlack = Color(0xFF090D16); // CIT Jet Black
+  static const Color accentGold = Color(0xFFF59E0B); // CIT Golden Yellow
+  static const Color accentYellow = Color(0xFFFBBF24); // CIT Bright Yellow
+  static const Color backgroundLight = Color(0xFFF8FAFC); // Clean Crisp White
+  static const Color cardWhite = Color(0xFFFFFFFF); // Pure White Cards
+  static const Color textDark = Color(0xFF0F172A);
   static const Color textMuted = Color(0xFF64748B);
   static const Color successGreen = Color(0xFF10B981);
 }

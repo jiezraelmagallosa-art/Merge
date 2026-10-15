@@ -129,6 +129,16 @@ require_once 'db_connect.php';
                 $total_days = intval($days_stmt->get_result()->fetch_assoc()['total_days'] ?? 0);
                 $days_stmt->close();
             }
+
+            // Total absences across history (Pending or Approved)
+            $total_absences = 0;
+            $abs_stmt = $conn->prepare("SELECT COUNT(*) as total_abs FROM absence_requests WHERE (student_id = ? OR ojt_id = ?) AND (status IS NULL OR status != 'Rejected')");
+            if ($abs_stmt) {
+                $abs_stmt->bind_param("ii", $row['student_id'], $row['student_id']);
+                $abs_stmt->execute();
+                $total_absences = intval($abs_stmt->get_result()->fetch_assoc()['total_abs'] ?? 0);
+                $abs_stmt->close();
+            }
             $total_min = 0;
 
             $rendered_hours = floor($total_min / 60);
@@ -167,6 +177,7 @@ require_once 'db_connect.php';
                 "formatted_time" => "{$rendered_hours}h {$rem_mins}m",
                 "progress_percentage" => $progress,
                 "total_days" => $total_days,
+                "total_absences" => $total_absences,
                 "status" => $status,
                 "site_breakdown" => $s_breakdown['sites']
             ];

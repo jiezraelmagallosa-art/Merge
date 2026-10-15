@@ -5,7 +5,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Student Records | Dean's Administrative Suite</title>
-  <link rel="stylesheet" href="css/admin.css?v=9.1">
+  <link rel="icon" type="image/png" href="assets/images/cit-logo.png">
+  <link rel="stylesheet" href="css/admin.css?v=9.3">
 </head>
 
 <body>
@@ -16,10 +17,10 @@
     <div class="auth-hero">
       <div class="auth-hero-header">
         <div class="auth-hero-logo">
-          <img src="assets/images/sbc_logo.png" alt="SBC Logo">
+          <img src="assets/images/cit-logo.png" alt="CIT Logo">
         </div>
         <div class="auth-hero-title">
-          <h1>Southern Baptist College</h1>
+          <h1>College of Information Technology</h1>
           <p>Student Records &bull; Dean's Administrative Suite</p>
         </div>
       </div>
@@ -31,7 +32,7 @@
       </div>
 
       <div class="auth-hero-footer">
-        &copy; 2026 Southern Baptist College &bull; Office of Student Affairs & Academic Records
+        &copy; 2026 College of Information Technology &bull; Office of Student Affairs & Academic Records
       </div>
     </div>
 
@@ -40,7 +41,7 @@
       <div class="auth-card">
         <div id="loginView">
           <div class="auth-card-header" style="text-align: center;">
-            <img src="assets/images/sbc_logo.png" alt="SBC Logo"
+            <img src="assets/images/cit-logo.png" alt="CIT Logo"
               style="width: 72px; height: 72px; margin-bottom: 0.75rem;">
             <h3>Administrator Sign In</h3>
             <p>Enter your institutional Dean / Administrator credentials to access the suite.</p>
@@ -77,7 +78,7 @@
         <!-- Register Dean Form View -->
         <div id="registerView" class="hidden">
           <div class="auth-card-header" style="text-align: center;">
-            <img src="assets/images/sbc_logo.png" alt="SBC Logo"
+            <img src="assets/images/cit-logo.png" alt="CIT Logo"
               style="width: 72px; height: 72px; margin-bottom: 0.75rem;">
             <h3>Create Dean Account</h3>
             <p>Register a new institutional Dean / Administrator account.</p>
@@ -133,10 +134,10 @@
     <aside class="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-logo">
-          <img src="assets/images/sbc_logo.png" alt="SBC Logo">
+          <img src="assets/images/cit-logo.png" alt="CIT Logo">
         </div>
         <div class="sidebar-brand">
-          <h2>Southern Baptist College</h2>
+          <h2>College of Information<br>Technology</h2>
           <p>Student Records Dean's Suite</p>
         </div>
       </div>
@@ -156,8 +157,8 @@
           <span>Attendance Logs</span>
         </a>
 
-        <a class="nav-item" href="../tap_attendance.php" target="_blank" style="color: #f59e0b;" title="Open ID Tap Attendance Station for queued students">
-          <span>📡 ID Tap Station ↗</span>
+        <a class="nav-item" href="../tap_attendance.php" target="_blank" rel="noopener noreferrer" style="color: #f59e0b;" title="Open ID Tap Attendance Station for queued students">
+          <span>ID Tap Station ↗</span>
         </a>
 
         <a class="nav-item" data-tab="absences">
@@ -178,8 +179,8 @@
           <span>Compliance Reports</span>
         </a>
 
-        <a class="nav-item" href="http://localhost:5000" target="_blank" style="color: #38bdf8;" title="Open CIT Department System">
-          <span>🏢 CIT Department System ↗</span>
+        <a class="nav-item" href="../cit_department_system/index.php" target="_blank" rel="noopener noreferrer" style="color: #38bdf8;" title="Open CIT Department System">
+          <span>CIT Department System ↗</span>
         </a>
       </nav>
 
@@ -209,11 +210,6 @@
         </div>
 
         <div class="topbar-actions" style="position: relative; display: flex; align-items: center; gap: 0.65rem;">
-          <a href="../tap_attendance.php" target="_blank" class="btn" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #040d1a; font-weight: 800; font-size: 0.82rem; padding: 0.45rem 0.95rem; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 0.45rem; box-shadow: 0 2px 6px rgba(245, 158, 11, 0.35);" title="Open ID Tap Attendance Station for queued students">
-            <span>📡</span>
-            <span>Launch ID Tap Kiosk</span>
-          </a>
-
           <button class="icon-btn" id="notifBtn" onclick="toggleNotifDropdown(event)" title="System Notifications">
             🔔
             <span class="badge-dot" id="notifBadgeDot" style="display: none;"></span>
@@ -331,14 +327,16 @@
               </div>
 
               <!-- 2. Attendance Status -->
+              <!-- 2. Attendance Standing -->
               <div>
                 <label for="studentStatusSelectFilter"
                   style="font-size: 0.8rem; font-weight: 700; color: var(--navy-primary); margin-bottom: 0.3rem; display: block;">
-                  Attendance Status:
+                  Attendance Standing:
                 </label>
                 <select id="studentStatusSelectFilter" class="form-control" onchange="handleStudentFilterChange()">
-                  <option value="ALL" selected>All Students</option>
-                  <option value="Active">Active Attendance</option>
+                  <option value="ALL" selected>All Standings</option>
+                  <option value="REGULAR">Regular Attendees (0 Absences)</option>
+                  <option value="IRREGULAR">Irregular Attendees (1+ Absences)</option>
                 </select>
               </div>
 
@@ -368,7 +366,7 @@
                     <th>Academic Program</th>
                     <th>Year Level</th>
                     <th>Event Presence</th>
-                    <th>Status</th>
+                    <th>Attendance Standing</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -689,8 +687,8 @@
         <section id="view-reports" class="view-pane hidden">
           <div class="page-header">
             <div class="page-header-title">
-              <h1>Institutional Compliance Reports</h1>
-              <p>Generate year-over-year attendance compliance statistics and export reports for Dean approval.</p>
+              <h1>Institutional Attendance &amp; Standing Reports</h1>
+              <p>Generate student attendance metrics, RFID badge mapping status, and export official reports for Dean review.</p>
             </div>
           </div>
 
@@ -704,9 +702,8 @@
         <section id="view-courses" class="view-pane hidden">
           <div class="page-header">
             <div class="page-header-title">
-              <h1>Academic Programs & Required Hours</h1>
-              <p>Configure institutional degree programs, curriculum courses, and type total required hours.
-              </p>
+              <h1>Academic Programs</h1>
+              <p>Configure institutional degree programs and curriculum courses for CIT students.</p>
             </div>
             <button class="btn btn-navy" onclick="openAddCourseModal()">+ Add Academic Program</button>
           </div>
@@ -718,7 +715,6 @@
                   <tr>
                     <th>Program Code</th>
                     <th>Academic Program / Course Name</th>
-                    <th>Required Total Hours</th>
                     <th>Active Enrolled Students</th>
                     <th>Dean Controls</th>
                   </tr>
@@ -1085,28 +1081,7 @@
             placeholder="e.g. Bachelor of Science in Computer Science">
         </div>
 
-        <div class="form-group">
-          <label for="courseRequiredHoursInput">Type Required Total Curriculum Hours</label>
-          <div style="position: relative;">
-            <input type="number" id="courseRequiredHoursInput" class="form-control" required min="1" max="5000" step="1"
-              placeholder="e.g. 480"
-              style="padding-right: 55px; font-weight: 700; font-size: 1rem; color: var(--navy-primary);">
-            <span
-              style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-weight: 700; color: var(--text-muted); font-size: 0.82rem;">HRS</span>
-          </div>
-          <div class="hours-preset-container" style="margin-top: 0.5rem; display: flex; gap: 0.35rem; flex-wrap: wrap;">
-            <button type="button" class="btn-preset-chip" onclick="setPresetHours(240)">240h</button>
-            <button type="button" class="btn-preset-chip" onclick="setPresetHours(300)">300h</button>
-            <button type="button" class="btn-preset-chip" onclick="setPresetHours(480)">480h</button>
-            <button type="button" class="btn-preset-chip" onclick="setPresetHours(500)">500h</button>
-            <button type="button" class="btn-preset-chip" onclick="setPresetHours(600)">600h</button>
-          </div>
-          <small
-            style="display:block; margin-top: 0.4rem; color: var(--text-muted); font-size: 0.76rem; line-height: 1.35;">
-            💡 Typing required hours here will automatically adjust the goal hours for all students enrolled in
-            this course.
-          </small>
-        </div>
+        <input type="hidden" id="courseRequiredHoursInput" value="480">
 
         <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1.5rem;">
           <button type="button" id="deleteCourseModalBtn" class="btn btn-danger" style="display:none;"
@@ -1323,7 +1298,7 @@
   <!-- RFID / School ID Card Mapping Modal -->
   <div id="rfidMappingModal" class="modal-overlay" onclick="if(event.target === this) closeRfidMappingModal()">
     <div class="modal-card" style="max-width: 520px;">
-      <div class="modal-header" style="background: linear-gradient(135deg, #071b30, #0f2c4e); color: #ffffff; padding: 1.1rem 1.4rem;">
+      <div class="modal-header" style="background: linear-gradient(135deg, #090d16, #1e2433); color: #ffffff; padding: 1.1rem 1.4rem;">
         <div style="display: flex; align-items: center; gap: 0.6rem;">
           <div style="font-size: 1.5rem;">💳</div>
           <div>
@@ -1368,7 +1343,7 @@
   </div>
 
   <script src="js/html2pdf.bundle.min.js"></script>
-  <script src="js/admin.js?v=9.6"></script>
+  <script src="js/admin.js?v=9.12"></script>
 </body>
 
 </html>

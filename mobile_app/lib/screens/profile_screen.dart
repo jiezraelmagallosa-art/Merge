@@ -129,7 +129,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   width: double.infinity,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [primaryNavy, Color(0xFF004080)],
+                      colors: [primaryNavy, Color(0xFF1E293B)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -152,7 +152,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               backgroundColor: Colors.white,
                               child: ClipOval(
                                 child: Image.asset(
-                                  'assets/images/sbc_logo.png',
+                                  'assets/images/cit_logo.png',
                                   fit: BoxFit.contain,
                                 ),
                               ),

@@ -5,17 +5,17 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* Root Color Palette & Design System Tokens */
+/* Root Color Palette & Design System Tokens (CIT Yellow, Black & White) */
 :root {
-  --navy-primary: #002d56;
-  --navy-dark: #001f3f;
-  --navy-light: #00407a;
+  --navy-primary: #0b0f19;
+  --navy-dark: #05080f;
+  --navy-light: #1e2433;
   --amber-gold: #f59e0b;
   --amber-dark: #d97706;
-  --bg-canvas: #ffffff;
+  --bg-canvas: #f8fafc;
   --card-bg: #ffffff;
-  --border-light: #d8dadc;
-  --border-hover: #b0b5ba;
+  --border-light: #e2e8f0;
+  --border-hover: #cbd5e1;
 
   --text-main: #1e293b;
   --text-muted: #64748b;
@@ -64,12 +64,12 @@ body {
   display: flex;
   min-height: 100vh;
   width: 100vw;
-  background-color: #001933;
+  background-color: #05080f;
 }
 
 .auth-hero {
   flex: 1.2;
-  background: linear-gradient(135deg, rgba(0, 45, 86, 0.85), rgba(0, 25, 51, 0.92)),
+  background: linear-gradient(135deg, rgba(11, 15, 25, 0.94), rgba(5, 8, 15, 0.97)),
     url('../assets/images/sbc_building.jpg') center/cover no-repeat;
   display: flex;
   flex-direction: column;
@@ -197,8 +197,8 @@ body {
 
 .form-control:focus {
   outline: none;
-  border-color: var(--navy-primary);
-  box-shadow: 0 0 0 3px rgba(0, 45, 86, 0.12);
+  border-color: var(--amber-gold);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
 }
 
 .btn-primary {
@@ -251,8 +251,9 @@ body {
 }
 
 .sidebar-header {
-  height: var(--topbar-height);
-  padding: 0 0.85rem;
+  min-height: var(--topbar-height);
+  height: auto;
+  padding: 0.6rem 0.85rem;
   display: flex;
   align-items: center;
   gap: 0.65rem;
@@ -261,9 +262,9 @@ body {
 }
 
 .sidebar-logo {
-  width: 34px;
-  height: 34px;
-  min-width: 34px;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
   background-color: #ffffff;
   border-radius: 50%;
   padding: 2px;
@@ -288,21 +289,21 @@ body {
 }
 
 .sidebar-brand h2 {
-  font-size: 0.84rem;
+  font-size: 0.8rem;
   font-weight: 700;
   color: #ffffff;
-  line-height: 1.15;
+  line-height: 1.18;
   letter-spacing: -0.2px;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .sidebar-brand p {
-  font-size: 0.62rem;
+  font-size: 0.6rem;
   color: var(--amber-gold);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   line-height: 1.1;
-  margin-top: 1px;
+  margin-top: 2px;
   white-space: nowrap;
 }
 
@@ -1791,7 +1792,7 @@ body {
   left: 0;
   bottom: 0;
   width: 4px;
-  background: linear-gradient(180deg, var(--navy-primary) 0%, #0284c7 100%);
+  background: linear-gradient(180deg, var(--navy-primary) 0%, var(--amber-gold) 100%);
 }
 
 /* Institutional Compliance Filter & Export Controls */

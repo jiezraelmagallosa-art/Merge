@@ -67,9 +67,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final int _targetHours = 480;
   List<dynamic> _siteBreakdown = [];
 
-  static const Color primaryNavy = Color(0xFF002D56);
-  static const Color accentGold = Color(0xFFFFB800);
-  static const Color bgLight = Color(0xFFF4F6F9);
+  static const Color primaryNavy = Color(0xFF0F172A);
+  static const Color accentGold = Color(0xFFF59E0B);
+  static const Color bgLight = Color(0xFFF8FAFC);
   static const Color cardWhite = Colors.white;
 
   @override
@@ -573,7 +573,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             backgroundColor: Colors.white,
             child: ClipOval(
               child: Image.asset(
-                'assets/images/sbc_logo.png',
+                'assets/images/cit_logo.png',
                 fit: BoxFit.contain,
                 errorBuilder: (context, error, stackTrace) => const Icon(
                   Icons.school_rounded,
@@ -1172,7 +1172,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF002D56).withValues(alpha: 0.05),
+                        color: const Color(0xFF0F172A).withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color: const Color(0xFFFFB800).withValues(alpha: 0.3),

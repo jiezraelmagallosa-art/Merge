@@ -247,7 +247,7 @@ class MotivationalMessages {
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF002D56),
+                  color: Color(0xFF0F172A),
                 ),
               ),
               if (recordedTime != null && recordedTime.isNotEmpty) ...[
@@ -268,7 +268,7 @@ class MotivationalMessages {
                   color: const Color(0xFFF4F6F9),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: const Color(0xFF002D56).withValues(alpha: 0.12),
+                    color: const Color(0xFF0F172A).withValues(alpha: 0.12),
                   ),
                 ),
                 child: Row(
@@ -286,7 +286,7 @@ class MotivationalMessages {
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF002D56),
+                          color: Color(0xFF0F172A),
                           height: 1.35,
                         ),
                       ),
@@ -299,7 +299,7 @@ class MotivationalMessages {
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF002D56),
+                    backgroundColor: const Color(0xFF0F172A),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -360,7 +360,7 @@ class MotivationalMessages {
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF002D56),
+                  color: Color(0xFF0F172A),
                 ),
               ),
               const SizedBox(height: 4),
@@ -398,7 +398,7 @@ class MotivationalMessages {
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF002D56),
+                          color: Color(0xFF0F172A),
                           height: 1.38,
                         ),
                       ),
@@ -411,7 +411,7 @@ class MotivationalMessages {
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF002D56),
+                    backgroundColor: const Color(0xFF0F172A),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),

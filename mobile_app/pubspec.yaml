@@ -35,5 +35,7 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/images/cit_logo.png
+    - assets/images/cit-logo.png
     - assets/images/sbc_logo.png
     - assets/images/sbc_building.jpg
