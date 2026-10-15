@@ -64,6 +64,16 @@ $completion_message = $is_completed ? "🎉 Congratulations! You have successful
 require_once 'site_helper.php';
 $site_breakdown_data = getStudentSiteBreakdown($conn, $student_id);
 
+$today = date('Y-m-d');
+$today_event = null;
+$ev_stmt = $conn->prepare("SELECT event_id, event_name, event_date, login_time, logout_time, login_cutoff_time, logout_cutoff_time, grace_period FROM events WHERE event_date = ? ORDER BY event_id ASC LIMIT 1");
+if ($ev_stmt) {
+    $ev_stmt->bind_param("s", $today);
+    $ev_stmt->execute();
+    $today_event = $ev_stmt->get_result()->fetch_assoc();
+    $ev_stmt->close();
+}
+
 echo json_encode([
     "status" => "success",
     "data" => [
@@ -80,11 +90,21 @@ echo json_encode([
         "total_days" => intval($result['total_days'] ?? 0),
         "is_completed" => $is_completed,
         "completion_message" => $completion_message,
-        "site_breakdown" => $site_breakdown_data['sites']
+        "site_breakdown" => $site_breakdown_data['sites'],
+        "today_event" => $today_event ? [
+            "has_event" => true,
+            "event_id" => intval($today_event['event_id']),
+            "event_name" => $today_event['event_name'],
+            "login_time" => $today_event['login_time'],
+            "logout_time" => $today_event['logout_time'],
+            "login_cutoff_time" => $today_event['login_cutoff_time'],
+            "logout_cutoff_time" => $today_event['logout_cutoff_time']
+        ] : [
+            "has_event" => false,
+            "message" => "No event added for today."
+        ]
     ]
 ]);
 
-
-$stmt->close();
 $conn->close();
 ?>

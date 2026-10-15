@@ -408,23 +408,41 @@ function renderLiveCaptures(captures) {
   container.innerHTML = captures.map((c, idx) => {
     const photoSrc = resolvePhotoUrl(c.full_url, c.image_path);
     const altFallback = (c.full_url && c.full_url !== photoSrc) ? c.full_url : '';
+    const attId = c.attendance_id || 0;
     return `
-    <div class="capture-card" onclick="openLiveCaptureLightbox(${idx})" title="Click to view whole picture (Full Size)">
+    <div class="capture-card" onclick="goToAttendanceLog(${attId}, ${idx})" title="Click to view &amp; evaluate this log in Attendance Logs">
       <div class="capture-img-box">
         <img src="${photoSrc}" alt="${escapeHtml(c.full_name)}" onerror="handlePhotoError(this, '${escapeHtml(altFallback)}');">
         <span class="capture-badge">${c.shift_type}</span>
-        <div class="capture-zoom-overlay">🔍 View Full</div>
+        <div class="capture-zoom-overlay">📋 Review Log</div>
       </div>
       <div class="capture-info">
         <h4>${escapeHtml(c.full_name)}</h4>
         <p>${c.student_number} &bull; ${c.course_code}</p>
         <p style="margin-top: 0.2rem; font-weight: 600; color: var(--navy-primary);">${c.captured_time} (${c.date})</p>
+        <div style="margin-top: 0.45rem;">
+          <button type="button" class="btn btn-outline" style="font-size: 0.72rem; padding: 0.22rem 0.5rem; width: 100%; font-weight: 700; border-color: #38bdf8; color: #0284c7;" onclick="event.stopPropagation(); goToAttendanceLog(${attId}, ${idx});">
+            Review Attendance Log &rarr;
+          </button>
+        </div>
       </div>
     </div>
   `;
   }).join('');
 }
 
+function goToAttendanceLog(attendanceId, captureIdx = null) {
+  setLogsDateFilter('ALL');
+  switchTab('logs');
+  if (attendanceId) {
+    setTimeout(() => {
+      const log = (cachedLogs || []).find(l => String(l.attendance_id) === String(attendanceId));
+      if (log && log.photos && log.photos.length > 0) {
+        openPhotoModal(log.photos, attendanceId);
+      }
+    }, 200);
+  }
+}
 
 // Student Tracking Data Loader
 async function fetchStudents() {
@@ -602,6 +620,15 @@ async function fetchLogs() {
       if (logDateInput && !logDateInput.value) {
         logDateInput.value = getLocalDateISO();
       }
+
+      // If current filter is 'TODAY' but there are no records for today while records exist,
+      // default to 'ALL' so the Dean immediately sees the pending verification records!
+      const todayISO = getLocalDateISO();
+      const hasTodayLogs = cachedLogs.some(l => (l.raw_date || '').substring(0, 10) === todayISO);
+      if (!hasTodayLogs && currentLogsDateFilter === 'TODAY' && cachedLogs.length > 0) {
+        currentLogsDateFilter = 'ALL';
+      }
+
       updateLogsCourseCounts(data.course_counts || {});
       populateLogsSiteDropdown();
       applyLogsFilters();
@@ -715,6 +742,19 @@ function setLogsDateFilter(filterKey) {
   } else if (filterKey === 'ALL') {
     if (customInput) customInput.value = '';
     currentLogsCustomDate = '';
+    currentLogsStatusFilter = 'ALL';
+    currentLogsCourseFilter = 'ALL';
+    currentLogsYearLevelFilter = 'ALL';
+    currentLogsSiteFilter = 'ALL';
+
+    const statusSel = document.getElementById('logsStatusSelectFilter');
+    if (statusSel) statusSel.value = 'ALL';
+    const courseSel = document.getElementById('logsCourseSelectFilter');
+    if (courseSel) courseSel.value = 'ALL';
+    const yearSel = document.getElementById('logsYearLevelSelectFilter');
+    if (yearSel) yearSel.value = 'ALL';
+    const siteSel = document.getElementById('logsSiteSelectFilter');
+    if (siteSel) siteSel.value = 'ALL';
   }
   applyLogsFilters();
 }
@@ -952,9 +992,14 @@ function renderLogsTable(logs) {
             <div style="font-size: 1.05rem; font-weight: 700; color: var(--navy-primary); margin-bottom: 0.35rem;">
               No Attendance Logs Recorded for Today (${todayFormatted})
             </div>
-            <p style="font-size: 0.85rem; color: #64748b; max-width: 450px; margin: 0 auto;">
-              Students may not have clocked in yet today, or may be assigned to afternoon shifts.
+            <p style="font-size: 0.85rem; color: #64748b; max-width: 480px; margin: 0 auto 1.25rem;">
+              ${cachedLogs.length > 0 ? `There are ${cachedLogs.length} attendance log record(s) from previous dates (including pending verification snapshots).` : `Students may not have clocked in yet today, or may be assigned to afternoon shifts.`}
             </p>
+            ${cachedLogs.length > 0 ? `
+              <button type="button" class="btn btn-navy" style="font-size: 0.82rem; padding: 0.45rem 1.2rem; font-weight: 700;" onclick="setLogsDateFilter('ALL')">
+                👉 View All Attendance Logs (${cachedLogs.length})
+              </button>
+            ` : ''}
           </td>
         </tr>`;
     } else {
@@ -985,6 +1030,11 @@ function renderLogsTable(logs) {
         View (${l.photos.length})
       </button>` : `<span style="color: var(--text-light); font-size: 0.8rem;">No Photo</span>`;
     const courseBadge = getCourseBadgeClass(l.course_code);
+
+    const hasMorning = (l.time_in_morning && l.time_in_morning !== '--:--') || (l.time_out_morning && l.time_out_morning !== '--:--');
+    const hasAfternoon = (l.time_in_afternoon && l.time_in_afternoon !== '--:--') || (l.time_out_afternoon && l.time_out_afternoon !== '--:--');
+    const isMorningPending = hasMorning && (!l.morning_status || l.morning_status === 'Pending');
+    const isAfternoonPending = hasAfternoon && (!l.afternoon_status || l.afternoon_status === 'Pending');
 
     // Morning shift badge & remarks: remove 'Confirmed' badge if confirmed; display badge only if Rejected or Pending
     let mBadgeHtml = '';
@@ -1030,24 +1080,24 @@ function renderLogsTable(logs) {
     if (l.status === 'Rejected') overallBadge = 'badge-danger';
     if (l.status === 'Partial') overallBadge = 'badge-warning';
 
-    const hasMorning = (l.time_in_morning && l.time_in_morning !== '--:--') || (l.time_out_morning && l.time_out_morning !== '--:--');
-    const hasAfternoon = (l.time_in_afternoon && l.time_in_afternoon !== '--:--') || (l.time_out_afternoon && l.time_out_afternoon !== '--:--');
-    const isMorningPending = hasMorning && (!l.morning_status || l.morning_status === 'Pending');
-    const isAfternoonPending = hasAfternoon && (!l.afternoon_status || l.afternoon_status === 'Pending');
+    const isConfirmedRecord = (l.status === 'Confirmed') ||
+      (hasMorning && hasAfternoon && l.morning_status === 'Confirmed' && l.afternoon_status === 'Confirmed') ||
+      (hasMorning && !hasAfternoon && l.morning_status === 'Confirmed') ||
+      (!hasMorning && hasAfternoon && l.afternoon_status === 'Confirmed');
 
     let evalControls = '';
 
-    if (l.status === 'Confirmed') {
+    if (isConfirmedRecord) {
       evalControls = `
-        <div class="dean-action-cell" style="justify-content: center;">
-          <span class="badge badge-success" style="font-size: 0.72rem; padding: 0.35rem 0.65rem;">✓ Confirmed</span>
+        <div style="font-size: 0.78rem; color: var(--text-muted); text-align: center; font-weight: 600; white-space: nowrap;">
+          No Action
         </div>`;
     } else if (l.status === 'Rejected') {
       evalControls = `
-        <div class="dean-action-cell" style="justify-content: center;">
-          <span class="badge badge-danger" style="font-size: 0.72rem; padding: 0.35rem 0.65rem;">✕ Rejected</span>
+        <div style="font-size: 0.78rem; color: #dc2626; text-align: center; font-weight: 600; white-space: nowrap;">
+          No Action
         </div>`;
-    } else if (hasMorning && !hasAfternoon) {
+    } else if (hasMorning && !hasAfternoon && isMorningPending) {
       // 1. Morning shift only & pending
       evalControls = `
         <div class="dean-action-cell">
@@ -1079,7 +1129,7 @@ function renderLogsTable(logs) {
           <button class="dean-btn-reject" onclick="reviewAttendanceLog(${l.attendance_id}, 'Rejected', 'afternoon')">Reject</button>
         </div>
       `;
-    } else if (!hasMorning && hasAfternoon) {
+    } else if (!hasMorning && hasAfternoon && isAfternoonPending) {
       // 5. Afternoon shift only & pending
       evalControls = `
         <div class="dean-action-cell">
@@ -1089,8 +1139,8 @@ function renderLogsTable(logs) {
       `;
     } else {
       evalControls = `
-        <div style="font-size: 0.75rem; color: var(--text-light); text-align: center;">
-          No pending action
+        <div style="font-size: 0.78rem; color: var(--text-muted); text-align: center; font-weight: 500; white-space: nowrap;">
+          No Action
         </div>
       `;
     }
@@ -1226,6 +1276,8 @@ async function reviewAbsence(absenceId, status) {
     });
     const data = await res.json();
     if (data.status === 'success') {
+      markNotificationViewed('absence_' + absenceId);
+      updateNotifications();
       alert(data.message);
       fetchAbsences();
       fetchOverview();
@@ -2550,6 +2602,11 @@ function openPhotoModal(photos, attendanceId = null) {
   const confirmContainer = document.getElementById('photoModalConfirmContainer');
   if (!container) return;
 
+  if (attendanceId) {
+    markNotificationViewed('log_' + attendanceId);
+    updateNotifications();
+  }
+
   currentModalPhotos = Array.isArray(photos) ? photos : [];
   currentModalPhotoIndex = 0;
 
@@ -2910,6 +2967,8 @@ async function reviewAttendanceLog(attendanceId, action, shift = 'morning') {
     });
     const data = await res.json();
     if (data.status === 'success') {
+      markNotificationViewed('log_' + attendanceId);
+      updateNotifications();
       alert(data.message);
       fetchLogs();
       fetchOverview();
@@ -4044,15 +4103,165 @@ function handleGlobalSearch(query) {
   filterActiveTable(q);
 }
 
-// Notifications Bell System
+// Notifications Bell System with Immediate Viewed/Tapped Dismissal
+function getViewedNotificationIds() {
+  try {
+    const raw = localStorage.getItem('viewed_admin_notifications');
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return new Set(arr);
+    }
+  } catch (e) {}
+  return new Set();
+}
+
+function markNotificationViewed(notifKey) {
+  if (!notifKey) return;
+  try {
+    const set = getViewedNotificationIds();
+    set.add(String(notifKey));
+    const arr = Array.from(set).slice(-500);
+    localStorage.setItem('viewed_admin_notifications', JSON.stringify(arr));
+  } catch (e) {}
+}
+
+function clearAllNotifications(e) {
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  const notifItems = document.querySelectorAll('.notif-item');
+  const viewed = getViewedNotificationIds();
+
+  notifItems.forEach(item => {
+    const key = item.getAttribute('data-notif-key');
+    if (key) viewed.add(key);
+  });
+
+  try {
+    localStorage.setItem('viewed_admin_notifications', JSON.stringify(Array.from(viewed).slice(-500)));
+  } catch (err) {}
+
+  const notifList = document.getElementById('notifList');
+  const countBadge = document.getElementById('notifCountBadge');
+  const badgeDot = document.getElementById('notifBadgeDot');
+  const clearBtn = document.getElementById('clearAllNotifsBtn');
+
+  if (notifList) {
+    notifList.innerHTML = `<div style="padding: 1.5rem; text-align: center; color: var(--text-muted); font-size: 0.82rem;">🎉 All caught up! No pending verifications or requests.</div>`;
+  }
+  if (countBadge) {
+    countBadge.textContent = '0 Pending';
+    countBadge.className = 'badge badge-warning';
+  }
+  if (badgeDot) {
+    badgeDot.style.display = 'none';
+  }
+  if (clearBtn) {
+    clearBtn.style.display = 'none';
+  }
+}
+
+function removeNotificationElement(el, notifKey) {
+  markNotificationViewed(notifKey);
+
+  const notifList = document.getElementById('notifList');
+  const countBadge = document.getElementById('notifCountBadge');
+  const badgeDot = document.getElementById('notifBadgeDot');
+  const clearBtn = document.getElementById('clearAllNotifsBtn');
+
+  const targetEl = el || (notifKey ? document.querySelector(`[data-notif-key="${notifKey}"]`) : null);
+
+  if (targetEl && targetEl.parentNode) {
+    targetEl.parentNode.removeChild(targetEl);
+  }
+
+  const remaining = notifList ? notifList.querySelectorAll('.notif-item').length : 0;
+
+  if (countBadge) {
+    countBadge.textContent = `${remaining} Pending`;
+    countBadge.className = remaining > 0 ? 'badge badge-danger' : 'badge badge-warning';
+  }
+  if (badgeDot) {
+    badgeDot.style.display = remaining > 0 ? 'block' : 'none';
+  }
+  if (clearBtn) {
+    clearBtn.style.display = remaining > 0 ? 'inline-block' : 'none';
+  }
+  if (remaining === 0 && notifList) {
+    notifList.innerHTML = `<div style="padding: 1.5rem; text-align: center; color: var(--text-muted); font-size: 0.82rem;">🎉 All caught up! No pending verifications or requests.</div>`;
+  }
+}
+
+function handleNotificationClick(type, id, notifKey, e) {
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  // Immediately mark viewed & remove from notification bar
+  markNotificationViewed(notifKey);
+  const targetEl = (e && e.currentTarget) ? e.currentTarget : document.querySelector(`[data-notif-key="${notifKey}"]`);
+  removeNotificationElement(targetEl, notifKey);
+
+  // Close the dropdown immediately
+  const dropdown = document.getElementById('notifDropdown');
+  if (dropdown) dropdown.classList.add('hidden');
+
+  // Immediately navigate to the respective record & open verification
+  if (type === 'log') {
+    setLogsDateFilter('ALL');
+    switchTab('logs');
+    if (id) {
+      setTimeout(() => {
+        const log = (cachedLogs || []).find(l => String(l.attendance_id) === String(id));
+        if (log && log.photos && log.photos.length > 0) {
+          openPhotoModal(log.photos, id);
+        }
+      }, 150);
+    }
+  } else if (type === 'absence') {
+    switchTab('absences');
+  }
+}
+
+function dismissSingleNotification(notifKey, e) {
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  const el = (e && e.target) ? e.target.closest('.notif-item') : document.querySelector(`[data-notif-key="${notifKey}"]`);
+  if (el) {
+    el.classList.add('removing');
+    setTimeout(() => {
+      removeNotificationElement(el, notifKey);
+    }, 150);
+  } else {
+    removeNotificationElement(null, notifKey);
+  }
+}
+
 function updateNotifications() {
-  const pendingLogs = cachedLogs.filter(l => l.status === 'Pending' || l.status === 'Pending Verification');
-  const pendingAbsences = cachedAbsences.filter(a => a.status === 'Pending');
+  const viewed = getViewedNotificationIds();
+
+  const pendingLogs = (cachedLogs || []).filter(l => {
+    const isPending = (l.status === 'Pending' || l.status === 'Pending Verification' || (l.attendance_status && (l.attendance_status.toLowerCase() === 'pending' || l.attendance_status.toLowerCase() === 'pending verification')));
+    const key = 'log_' + (l.attendance_id || (l.student_id + '_' + l.date));
+    return isPending && !viewed.has(key);
+  });
+
+  const pendingAbsences = (cachedAbsences || []).filter(a => {
+    const isPending = (a.status === 'Pending');
+    const key = 'absence_' + (a.absence_id || (a.student_id + '_' + a.date_absent));
+    return isPending && !viewed.has(key);
+  });
+
   const totalPending = pendingLogs.length + pendingAbsences.length;
 
   const badgeDot = document.getElementById('notifBadgeDot');
   const countBadge = document.getElementById('notifCountBadge');
   const notifList = document.getElementById('notifList');
+  const clearBtn = document.getElementById('clearAllNotifsBtn');
 
   if (badgeDot) {
     badgeDot.style.display = totalPending > 0 ? 'block' : 'none';
@@ -4063,6 +4272,10 @@ function updateNotifications() {
     countBadge.className = totalPending > 0 ? 'badge badge-danger' : 'badge badge-warning';
   }
 
+  if (clearBtn) {
+    clearBtn.style.display = totalPending > 0 ? 'inline-block' : 'none';
+  }
+
   if (notifList) {
     if (totalPending === 0) {
       notifList.innerHTML = `<div style="padding: 1.5rem; text-align: center; color: var(--text-muted); font-size: 0.82rem;">🎉 All caught up! No pending verifications or requests.</div>`;
@@ -4070,27 +4283,43 @@ function updateNotifications() {
       let itemsHtml = '';
 
       pendingLogs.forEach(l => {
+        const key = 'log_' + (l.attendance_id || (l.student_id + '_' + l.date));
         itemsHtml += `
-          <div class="notif-item" onclick="switchTab('logs'); toggleNotifDropdown();">
+          <div class="notif-item" data-notif-key="${key}" onclick="handleNotificationClick('log', '${l.attendance_id || ''}', '${key}', event);">
             <div class="notif-item-title">
               <span>📸 Attendance Log</span>
-              <span class="badge badge-warning" style="font-size: 0.65rem;">Pending</span>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span class="badge badge-warning" style="font-size: 0.65rem;">Pending</span>
+                <button type="button" class="notif-dismiss-btn" title="Dismiss from notification bar" onclick="dismissSingleNotification('${key}', event);">&times;</button>
+              </div>
             </div>
             <div class="notif-item-desc">
-              <strong>${escapeHtml(l.full_name)}</strong> logged attendance on ${l.date}. Verification photo ready for review.
+              <strong>${escapeHtml(l.full_name || 'Student')}</strong> logged attendance on ${l.date}. Verification photo ready for review.
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 6px; font-size: 0.72rem; color: #64748b;">
+              <span style="color: #0284c7; font-weight: 600;">Tap to view &amp; verify &rarr;</span>
+              <span style="color: #94a3b8; font-size: 0.68rem;">Tap or click to dismiss</span>
             </div>
           </div>`;
       });
 
       pendingAbsences.forEach(a => {
+        const key = 'absence_' + (a.absence_id || (a.student_id + '_' + a.date_absent));
         itemsHtml += `
-          <div class="notif-item" onclick="switchTab('absences'); toggleNotifDropdown();">
+          <div class="notif-item" data-notif-key="${key}" onclick="handleNotificationClick('absence', '${a.absence_id || ''}', '${key}', event);">
             <div class="notif-item-title">
               <span>📄 Absence Request</span>
-              <span class="badge badge-danger" style="font-size: 0.65rem;">Action Required</span>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span class="badge badge-danger" style="font-size: 0.65rem;">Action Required</span>
+                <button type="button" class="notif-dismiss-btn" title="Dismiss from notification bar" onclick="dismissSingleNotification('${key}', event);">&times;</button>
+              </div>
             </div>
             <div class="notif-item-desc">
-              <strong>${escapeHtml(a.full_name)}</strong> requested absence for ${a.date_absent}: "${escapeHtml(a.reason)}".
+              <strong>${escapeHtml(a.full_name || 'Student')}</strong> requested absence for ${a.date_absent}: "${escapeHtml(a.reason || '')}".
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 6px; font-size: 0.72rem; color: #64748b;">
+              <span style="color: #0284c7; font-weight: 600;">Tap to view &amp; evaluate &rarr;</span>
+              <span style="color: #94a3b8; font-size: 0.68rem;">Tap or click to dismiss</span>
             </div>
           </div>`;
       });
@@ -4104,7 +4333,15 @@ function toggleNotifDropdown(e) {
   if (e) e.stopPropagation();
   const dropdown = document.getElementById('notifDropdown');
   if (dropdown) {
+    const isOpening = dropdown.classList.contains('hidden');
     dropdown.classList.toggle('hidden');
+    if (isOpening) {
+      // Notification bar has been opened/viewed by the administrator
+      const badgeDot = document.getElementById('notifBadgeDot');
+      if (badgeDot) {
+        badgeDot.style.display = 'none';
+      }
+    }
   }
 }
 

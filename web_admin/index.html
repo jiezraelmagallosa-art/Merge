@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Student Records | Dean's Administrative Suite</title>
   <link rel="icon" type="image/png" href="assets/images/cit-logo.png">
-  <link rel="stylesheet" href="css/admin.css?v=9.3">
+  <link rel="stylesheet" href="css/admin.css?v=20261016_02">
 </head>
 
 <body>
@@ -157,9 +157,6 @@
           <span>Attendance Logs</span>
         </a>
 
-        <a class="nav-item" href="../tap_attendance.php" target="_blank" rel="noopener noreferrer" style="color: #f59e0b;" title="Open ID Tap Attendance Station for queued students">
-          <span>ID Tap Station ↗</span>
-        </a>
 
         <a class="nav-item" data-tab="absences">
           <span>Absence Requests</span>
@@ -220,7 +217,10 @@
           <div id="notifDropdown" class="notif-dropdown hidden" onclick="event.stopPropagation()">
             <div class="notif-header">
               <h3>System Notifications</h3>
-              <span id="notifCountBadge" class="badge badge-warning">0 Pending</span>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <button id="clearAllNotifsBtn" class="notif-clear-all-btn" onclick="clearAllNotifications(event)" title="Mark all as viewed" style="display: none;">Clear all</button>
+                <span id="notifCountBadge" class="badge badge-warning">0 Pending</span>
+              </div>
             </div>
             <div id="notifList" class="notif-list">
               <!-- Dynamically rendered notification items -->
@@ -1303,7 +1303,7 @@
           <div style="font-size: 1.5rem;">💳</div>
           <div>
             <h3 style="margin: 0; font-size: 1.1rem; color: #ffffff; font-weight: 800;">RFID / ID Card Mapping</h3>
-            <span style="font-size: 0.78rem; color: #fbbf24;">Associate Student ID Card for Instant Kiosk Tapping</span>
+            <span style="font-size: 0.78rem; color: #fbbf24;">Associate Student ID Card for Instant Attendance Tapping</span>
           </div>
         </div>
         <button class="close-btn" onclick="closeRfidMappingModal()" style="color: #ffffff;">&times;</button>
@@ -1343,7 +1343,7 @@
   </div>
 
   <script src="js/html2pdf.bundle.min.js"></script>
-  <script src="js/admin.js?v=9.12"></script>
+  <script src="js/admin.js?v=20261016_06"></script>
 </body>
 
 </html>

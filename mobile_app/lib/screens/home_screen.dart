@@ -398,32 +398,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     if (shift == null) return;
 
-    final DateTime now = DateTime.now();
-    final double currentDecimalHour = now.hour + (now.minute / 60.0);
 
-    if (shift == 'morning') {
-      if (currentDecimalHour < 5.0 || currentDecimalHour > 12.5) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Morning shift attendance can only be recorded between 5:00 AM and 12:30 PM.'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-        return;
-      }
-    } else if (shift == 'afternoon') {
-      if (currentDecimalHour < 12.5 || currentDecimalHour > 19.0) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Afternoon shift attendance can only be recorded between 12:30 PM and 7:00 PM.'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-        return;
-      }
-    }
 
     setState(() {
       _isActionLoading = true;

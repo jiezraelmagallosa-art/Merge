@@ -650,6 +650,23 @@ def record_rfid():
 
     now = datetime.now()
     event_date = event.get('date')
+    event_date_parsed = None
+    if isinstance(event_date, str):
+        try:
+            event_date_parsed = datetime.strptime(event_date, "%Y-%m-%d").date()
+        except Exception:
+            event_date_parsed = None
+    elif isinstance(event_date, datetime):
+        event_date_parsed = event_date.date()
+    elif isinstance(event_date, date):
+        event_date_parsed = event_date
+
+    if event_date_parsed and event_date_parsed != now.date():
+        return jsonify({
+            'success': False,
+            'message': f"Cannot record attendance. This event is scheduled for {event_date_parsed.strftime('%B %d, %Y')}, not today ({now.strftime('%B %d, %Y')})."
+        }), 400
+
     login_time = event.get('login_time')
     logout_time = event.get('logout_time')
     login_cutoff = event.get('login_cutoff_time')
@@ -714,12 +731,14 @@ def record_rfid():
         status = 'logout'
     else:
         if login_start and now < login_start:
-            return jsonify({'success': False, 'message': 'Event has not started yet. Please wait until login time.'}), 400
-        if logout_end and now > logout_end:
-            return jsonify({'success': False, 'message': 'Event is already closed.'}), 400
+            return jsonify({'success': False, 'message': f'Log-in has not started yet. Log-in starts at {login_start.strftime("%I:%M %p")}.'}), 400
         if login_end and logout_start and login_end < now < logout_start:
-            return jsonify({'success': False, 'message': 'Attendance window is not open. Please wait until logout time.'}), 400
-        return jsonify({'success': False, 'message': 'Unable to determine tap period. Please contact the administrator.'}), 400
+            return jsonify({'success': False, 'message': f'Log-in cutoff reached ({login_end.strftime("%I:%M %p")}). Log-in is closed. Log-out starts at {logout_start.strftime("%I:%M %p")}.'}), 400
+        if logout_end and now > logout_end:
+            return jsonify({'success': False, 'message': f'Log-out cutoff reached ({logout_end.strftime("%I:%M %p")}). Event attendance is closed.'}), 400
+        if login_end and not logout_start and now > login_end:
+            return jsonify({'success': False, 'message': f'Log-in cutoff reached ({login_end.strftime("%I:%M %p")}). Log-in is closed.'}), 400
+        return jsonify({'success': False, 'message': 'Attendance cutoff reached or window is currently closed.'}), 400
 
     if attendance_model.attendance_exists(event_id, student['id'], status):
         verb = 'in' if status == 'login' else 'out'

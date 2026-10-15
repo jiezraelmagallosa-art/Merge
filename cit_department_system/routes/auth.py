@@ -59,8 +59,9 @@ def admin_login():
         password = (data.get("password") or "").strip()
 
         admin = None
-        conn = get_db_connection()
+        conn = None
         try:
+            conn = get_db_connection()
             cursor = conn.cursor(dictionary=True)
             # 1. Look up in admins table case-insensitively
             cursor.execute("SELECT * FROM admins WHERE LOWER(username)=LOWER(%s) LIMIT 1", (username,))
@@ -88,8 +89,14 @@ def admin_login():
                         conn.commit()
                         cursor.execute("SELECT * FROM admins WHERE username=%s", (sbc_user["email"],))
                         admin = cursor.fetchone()
+        except Exception as db_err:
+            error = f"Database error: {str(db_err)}"
         finally:
-            conn.close()
+            if conn:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
 
         # Check password validity
         authenticated = False

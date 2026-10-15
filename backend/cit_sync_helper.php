@@ -224,21 +224,10 @@ if (!function_exists('syncAttendanceToCitSystem')) {
                 $stmt_ev->close();
             }
 
+            // If no event has been added for this day by an admin, attendance cannot be logged
             if ($cit_event_id <= 0) {
-                $event_name = "Daily Department Attendance - " . date("M j, Y", strtotime($date));
-                $stmt_ins_ev = $conn->prepare("
-                    INSERT INTO events (event_name, event_date, login_time, logout_time, login_cutoff_time, logout_cutoff_time, grace_period, absent_fine, late_fine)
-                    VALUES (?, ?, '05:00:00', '19:00:00', '12:30:00', '19:00:00', 30, 0, 0)
-                ");
-                if ($stmt_ins_ev) {
-                    $stmt_ins_ev->bind_param("ss", $event_name, $date);
-                    $stmt_ins_ev->execute();
-                    $cit_event_id = $conn->insert_id;
-                    $stmt_ins_ev->close();
-                }
+                return false;
             }
-
-            if ($cit_event_id <= 0) return false;
 
             if ($is_confirmed) {
                 // CONFIRMED by Dean of SBC: mark as login/logout and set paper Present
@@ -419,21 +408,10 @@ if (!function_exists('syncDeanConfirmationToCitSystem')) {
                 $stmt_ev->close();
             }
 
+            // If no event has been added for this day by an admin, attendance cannot be logged
             if ($cit_event_id <= 0) {
-                $event_name = "Daily Department Attendance - " . date("M j, Y", strtotime($date));
-                $stmt_ins_ev = $conn->prepare("
-                    INSERT INTO events (event_name, event_date, login_time, logout_time, login_cutoff_time, logout_cutoff_time, grace_period, absent_fine, late_fine)
-                    VALUES (?, ?, '05:00:00', '19:00:00', '12:30:00', '19:00:00', 30, 0, 0)
-                ");
-                if ($stmt_ins_ev) {
-                    $stmt_ins_ev->bind_param("ss", $event_name, $date);
-                    $stmt_ins_ev->execute();
-                    $cit_event_id = $conn->insert_id;
-                    $stmt_ins_ev->close();
-                }
+                return false;
             }
-
-            if ($cit_event_id <= 0) return false;
 
             // 4. Action evaluation
             if ($action === 'Confirmed') {

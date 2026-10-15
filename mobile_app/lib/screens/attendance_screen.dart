@@ -80,31 +80,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
   Future<void> _handleAttendanceSubmit(String action) async {
-    final DateTime now = DateTime.now();
-    final double currentDecimalHour = now.hour + (now.minute / 60.0);
-
-    if (action.contains('morning')) {
-      if (currentDecimalHour < 5.0 || currentDecimalHour > 12.5) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Morning shift attendance can only be recorded between 5:00 AM and 12:30 PM.'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-        return;
-      }
-    } else if (action.contains('afternoon')) {
-      if (currentDecimalHour < 12.5 || currentDecimalHour > 19.0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Afternoon shift attendance can only be recorded between 12:30 PM and 7:00 PM.'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-        return;
-      }
-    }
-
     setState(() {
       _isActionLoading = true;
     });

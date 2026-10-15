@@ -70,6 +70,7 @@ try {
 
     $sql_photos = "SELECT
                     p.photo_id,
+                    p.attendance_id,
                     p.shift_type,
                     p.image_path,
                     p.captured_at,
@@ -96,6 +97,7 @@ try {
             $clean_img_path = ltrim(str_replace('\\', '/', $p['image_path']), '/');
             $live_captures[] = [
                 "photo_id" => $p['photo_id'],
+                "attendance_id" => intval($p['attendance_id'] ?? 0),
                 "full_name" => $p['full_name'],
                 "student_number" => $p['student_number'],
                 "course_code" => $p['course_code'] ?? 'BSIS',

@@ -115,19 +115,59 @@ try {
         $target_column = '';
         $target_label = '';
 
-        // 3. Resolve target shift column
+        // 3. Resolve target shift column - Event MUST exist for today
+        $stmt_ev = $conn->prepare("
+            SELECT event_id, event_name, event_date, login_time, logout_time, login_cutoff_time, logout_cutoff_time, grace_period
+            FROM events
+            WHERE event_date = ?
+            ORDER BY event_id ASC
+        ");
+        $events_today = [];
+        if ($stmt_ev) {
+            $stmt_ev->bind_param("s", $today);
+            $stmt_ev->execute();
+            $res_ev = $stmt_ev->get_result();
+            while ($row_ev = $res_ev->fetch_assoc()) {
+                $events_today[] = $row_ev;
+            }
+            $stmt_ev->close();
+        }
+
+        if (empty($events_today)) {
+            echo json_encode([
+                "status" => "error",
+                "code" => "NO_EVENT",
+                "message" => "Cannot take attendance. No event has been added for today (" . date("F j, Y", strtotime($today)) . "). Attendance log-in and log-out are unavailable."
+            ]);
+            exit();
+        }
+
+        $active_event = $events_today[0];
+        $ev_name = $active_event['event_name'] ?? 'Department Event';
+        $ev_grace = intval($active_event['grace_period'] ?? 0);
+
+        $ev_login = $active_event['login_time'] ?? null;
+        $ev_login_cutoff = !empty($active_event['login_cutoff_time'])
+            ? $active_event['login_cutoff_time']
+            : (!empty($ev_login) && $ev_grace > 0 ? date('H:i:s', strtotime($ev_login . " +$ev_grace minutes")) : $ev_login);
+
+        $ev_logout = $active_event['logout_time'] ?? null;
+        $ev_logout_cutoff = !empty($active_event['logout_cutoff_time'])
+            ? $active_event['logout_cutoff_time']
+            : (!empty($ev_logout) && $ev_grace > 0 ? date('H:i:s', strtotime($ev_logout . " +$ev_grace minutes")) : $ev_logout);
+
         if ($shift_mode === 'auto') {
-            // Window definitions:
-            // Morning: 05:00:00 - 12:30:00
-            // Afternoon: 12:30:00 - 19:00:00
-            if ($now_time >= '05:00:00' && $now_time <= '12:30:00') {
-                if (!$existing_att || !$hasTime($existing_att['time_in_morning'])) {
-                    $target_column = 'time_in_morning';
-                    $target_label = 'Morning Time-In';
-                } elseif (!$hasTime($existing_att['time_out_morning'])) {
-                    $target_column = 'time_out_morning';
-                    $target_label = 'Morning Time-Out';
-                } else {
+            // Determine if current time falls in login or logout window
+            $in_login_window = ($ev_login && $ev_login_cutoff && $now_time >= $ev_login && $now_time <= $ev_login_cutoff);
+            $in_logout_window = ($ev_logout && $ev_logout_cutoff && $now_time >= $ev_logout && $now_time <= $ev_logout_cutoff);
+
+            // Choose appropriate column (morning vs afternoon depending on event time)
+            $col_shift = ($ev_login && $ev_login >= '12:00:00') ? 'afternoon' : 'morning';
+
+            if ($in_login_window) {
+                $target_column = 'time_in_' . $col_shift;
+                $target_label = ($col_shift === 'afternoon' ? 'Afternoon' : 'Morning') . ' Time-In';
+                if ($existing_att && $hasTime($existing_att[$target_column])) {
                     echo json_encode([
                         "status" => "error",
                         "code" => "ALREADY_COMPLETED_SHIFT",
@@ -136,18 +176,14 @@ try {
                             "student_number" => $student['student_number'],
                             "course_code" => $student['course_code'] ?? 'OJT'
                         ],
-                        "message" => "Already recorded Morning Shift today (In: " . date("h:i A", strtotime($existing_att['time_in_morning'])) . ", Out: " . date("h:i A", strtotime($existing_att['time_out_morning'])) . "). Afternoon shift starts at 12:30 PM."
+                        "message" => "Already recorded {$target_label} today (" . date("h:i A", strtotime($existing_att[$target_column])) . ")."
                     ]);
                     exit();
                 }
-            } elseif ($now_time > '12:30:00' && $now_time <= '19:00:00') {
-                if (!$existing_att || !$hasTime($existing_att['time_in_afternoon'])) {
-                    $target_column = 'time_in_afternoon';
-                    $target_label = 'Afternoon Time-In';
-                } elseif (!$hasTime($existing_att['time_out_afternoon'])) {
-                    $target_column = 'time_out_afternoon';
-                    $target_label = 'Afternoon Time-Out';
-                } else {
+            } elseif ($in_logout_window) {
+                $target_column = 'time_out_' . $col_shift;
+                $target_label = ($col_shift === 'afternoon' ? 'Afternoon' : 'Morning') . ' Time-Out';
+                if ($existing_att && $hasTime($existing_att[$target_column])) {
                     echo json_encode([
                         "status" => "error",
                         "code" => "ALREADY_COMPLETED_SHIFT",
@@ -156,19 +192,32 @@ try {
                             "student_number" => $student['student_number'],
                             "course_code" => $student['course_code'] ?? 'OJT'
                         ],
-                        "message" => "Already recorded Afternoon Shift today (In: " . date("h:i A", strtotime($existing_att['time_in_afternoon'])) . ", Out: " . date("h:i A", strtotime($existing_att['time_out_afternoon'])) . ")."
+                        "message" => "Already recorded {$target_label} today (" . date("h:i A", strtotime($existing_att[$target_column])) . ")."
                     ]);
                     exit();
                 }
             } else {
+                // Determine specific cutoff or out-of-window message
+                if ($ev_login && $now_time < $ev_login) {
+                    $msg = "Log-in has not started yet. Log-in starts at " . date("g:i A", strtotime($ev_login)) . " for event '{$ev_name}'.";
+                } elseif ($ev_login_cutoff && $ev_logout && $now_time > $ev_login_cutoff && $now_time < $ev_logout) {
+                    $msg = "Log-in cutoff reached (" . date("g:i A", strtotime($ev_login_cutoff)) . "). Log-in is closed. Log-out starts at " . date("g:i A", strtotime($ev_logout)) . ".";
+                } elseif ($ev_logout_cutoff && $now_time > $ev_logout_cutoff) {
+                    $msg = "Log-out cutoff reached (" . date("g:i A", strtotime($ev_logout_cutoff)) . "). Event '{$ev_name}' is closed.";
+                } elseif ($ev_login_cutoff && !$ev_logout && $now_time > $ev_login_cutoff) {
+                    $msg = "Log-in cutoff reached (" . date("g:i A", strtotime($ev_login_cutoff)) . "). Log-in is closed.";
+                } else {
+                    $msg = "Attendance window is closed for event '{$ev_name}'.";
+                }
+
                 echo json_encode([
                     "status" => "error",
-                    "code" => "OUTSIDE_WINDOW",
+                    "code" => "CUTOFF",
                     "student" => [
                         "full_name" => $student['full_name'],
                         "student_number" => $student['student_number']
                     ],
-                    "message" => "Attendance station is currently closed. Active hours: Morning 5:00 AM - 12:30 PM | Afternoon 12:30 PM - 7:00 PM."
+                    "message" => $msg
                 ]);
                 exit();
             }
@@ -197,6 +246,46 @@ try {
 
             $target_column = $alias_map[$shift_key];
             $target_label = $shift_labels[$target_column];
+
+            // Validate cutoff in explicit mode
+            $is_expl_login = (strpos($target_column, 'in') !== false);
+            $is_expl_logout = (strpos($target_column, 'out') !== false);
+
+            if ($is_expl_login) {
+                if ($ev_login && $now_time < $ev_login) {
+                    echo json_encode([
+                        "status" => "error",
+                        "code" => "EARLY",
+                        "message" => "Log-in has not started yet. Log-in starts at " . date("g:i A", strtotime($ev_login)) . " for event '{$ev_name}'."
+                    ]);
+                    exit();
+                }
+                if ($ev_login_cutoff && $now_time > $ev_login_cutoff) {
+                    echo json_encode([
+                        "status" => "error",
+                        "code" => "CUTOFF",
+                        "message" => "Log-in cutoff reached (" . date("g:i A", strtotime($ev_login_cutoff)) . "). Log-in is closed for event '{$ev_name}'."
+                    ]);
+                    exit();
+                }
+            } elseif ($is_expl_logout) {
+                if ($ev_logout && $now_time < $ev_logout) {
+                    echo json_encode([
+                        "status" => "error",
+                        "code" => "EARLY",
+                        "message" => "Log-out has not started yet. Log-out starts at " . date("g:i A", strtotime($ev_logout)) . " for event '{$ev_name}'."
+                    ]);
+                    exit();
+                }
+                if ($ev_logout_cutoff && $now_time > $ev_logout_cutoff) {
+                    echo json_encode([
+                        "status" => "error",
+                        "code" => "CUTOFF",
+                        "message" => "Log-out cutoff reached (" . date("g:i A", strtotime($ev_logout_cutoff)) . "). Log-out is closed for event '{$ev_name}'."
+                    ]);
+                    exit();
+                }
+            }
 
             // Validation for explicit shift
             if ($target_column === 'time_in_morning') {
@@ -482,8 +571,29 @@ try {
             "afternoon_out_count" => 0,
             "total_students_today" => 0,
             "server_time" => date("h:i:s A"),
-            "server_date" => date("l, F j, Y"),
-            "active_window" => ($now_time >= '05:00:00' && $now_time <= '12:30:00') ? 'Morning Shift' : (($now_time > '12:30:00' && $now_time <= '19:00:00') ? 'Afternoon Shift' : 'Closed')
+            "active_window" => (function() use ($conn, $today, $now_time) {
+                $ev_stmt = $conn->prepare("SELECT event_name, login_time, logout_time, login_cutoff_time, logout_cutoff_time, grace_period FROM events WHERE event_date = ? ORDER BY event_id ASC LIMIT 1");
+                if (!$ev_stmt) return 'Closed';
+                $ev_stmt->bind_param("s", $today);
+                $ev_stmt->execute();
+                $ev_info = $ev_stmt->get_result()->fetch_assoc();
+                $ev_stmt->close();
+                if (!$ev_info) return 'No Event Scheduled';
+                $ev_login = $ev_info['login_time'];
+                $ev_login_cutoff = $ev_info['login_cutoff_time'] ?: $ev_login;
+                $ev_logout = $ev_info['logout_time'];
+                $ev_logout_cutoff = $ev_info['logout_cutoff_time'] ?: $ev_logout;
+                if ($ev_login && $ev_login_cutoff && $now_time >= $ev_login && $now_time <= $ev_login_cutoff) {
+                    return 'Log-In Open (' . date("g:i A", strtotime($ev_login)) . ' - ' . date("g:i A", strtotime($ev_login_cutoff)) . ')';
+                } elseif ($ev_logout && $ev_logout_cutoff && $now_time >= $ev_logout && $now_time <= $ev_logout_cutoff) {
+                    return 'Log-Out Open (' . date("g:i A", strtotime($ev_logout)) . ' - ' . date("g:i A", strtotime($ev_logout_cutoff)) . ')';
+                } elseif ($ev_login_cutoff && $now_time > $ev_login_cutoff && (!$ev_logout || $now_time < $ev_logout)) {
+                    return 'Log-In Cutoff Reached';
+                } elseif ($ev_logout_cutoff && $now_time > $ev_logout_cutoff) {
+                    return 'Log-Out Cutoff Reached';
+                }
+                return 'Closed';
+            })()
         ];
 
         $q = $conn->query("

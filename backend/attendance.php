@@ -36,19 +36,113 @@ try {
     $current_date = date('Y-m-d');
     $current_time = date('H:i:s');
 
-    // Shift time window validation
-    // Morning shift: 5:00 AM (05:00:00) to 12:30 PM (12:30:00)
-    // Afternoon shift: 12:30 PM (12:30:00) to 7:00 PM (19:00:00)
+    // Validate against the scheduled event for today
     $current_time_formatted = date('H:i:s', strtotime($current_time));
+    $is_login = in_array($action, ['time_in_morning', 'time_in_afternoon']);
+    $is_logout = in_array($action, ['time_out_morning', 'time_out_afternoon']);
+    $is_morning = in_array($action, ['time_in_morning', 'time_out_morning']);
+    $is_afternoon = in_array($action, ['time_in_afternoon', 'time_out_afternoon']);
 
-    if (in_array($action, ['time_in_morning', 'time_out_morning'])) {
-        if ($current_time_formatted < '05:00:00' || $current_time_formatted > '12:30:00') {
-            echo json_encode(["status" => "error", "message" => "Morning shift attendance can only be recorded between 5:00 AM and 12:30 PM."]);
+    $stmt_ev = $conn->prepare("
+        SELECT event_id, event_name, event_date, login_time, logout_time, login_cutoff_time, logout_cutoff_time, grace_period
+        FROM events
+        WHERE event_date = ?
+        ORDER BY event_id ASC
+    ");
+    $events_today = [];
+    if ($stmt_ev) {
+        $stmt_ev->bind_param("s", $current_date);
+        $stmt_ev->execute();
+        $res_ev = $stmt_ev->get_result();
+        while ($row_ev = $res_ev->fetch_assoc()) {
+            $events_today[] = $row_ev;
+        }
+        $stmt_ev->close();
+    }
+
+    if (empty($events_today)) {
+        echo json_encode([
+            "status"  => "error",
+            "message" => "No scheduled event found for today (" . date("F j, Y", strtotime($current_date)) . "). Attendance log-in and log-out are unavailable."
+        ]);
+        exit();
+    }
+
+    // Select the appropriate event if multiple exist for today
+    $active_event = $events_today[0];
+    if (count($events_today) > 1) {
+        if ($is_morning) {
+            foreach ($events_today as $ev) {
+                if (!empty($ev['login_time']) && $ev['login_time'] < '12:30:00') {
+                    $active_event = $ev;
+                    break;
+                }
+            }
+        } elseif ($is_afternoon) {
+            foreach ($events_today as $ev) {
+                if (!empty($ev['login_time']) && $ev['login_time'] >= '12:00:00') {
+                    $active_event = $ev;
+                    break;
+                }
+            }
+        }
+    }
+
+    $event_title = $active_event['event_name'] ?? 'Department Event';
+    $ev_grace = intval($active_event['grace_period'] ?? 0);
+
+    $ev_login_time = $active_event['login_time'] ?? null;
+    $ev_login_cutoff = !empty($active_event['login_cutoff_time'])
+        ? $active_event['login_cutoff_time']
+        : (!empty($ev_login_time) && $ev_grace > 0 ? date('H:i:s', strtotime($ev_login_time . " +$ev_grace minutes")) : $ev_login_time);
+
+    $ev_logout_time = $active_event['logout_time'] ?? null;
+    $ev_logout_cutoff = !empty($active_event['logout_cutoff_time'])
+        ? $active_event['logout_cutoff_time']
+        : (!empty($ev_logout_time) && $ev_grace > 0 ? date('H:i:s', strtotime($ev_logout_time . " +$ev_grace minutes")) : $ev_logout_time);
+
+    if ($is_login) {
+        if (empty($ev_login_time)) {
+            echo json_encode([
+                "status"  => "error",
+                "message" => "Event '{$event_title}' does not have a log-in schedule configured."
+            ]);
             exit();
         }
-    } elseif (in_array($action, ['time_in_afternoon', 'time_out_afternoon'])) {
-        if ($current_time_formatted < '12:30:00' || $current_time_formatted > '19:00:00') {
-            echo json_encode(["status" => "error", "message" => "Afternoon shift attendance can only be recorded between 12:30 PM and 7:00 PM."]);
+        if ($current_time_formatted < $ev_login_time) {
+            echo json_encode([
+                "status"  => "error",
+                "message" => "Log-in has not started yet. Log-in starts at " . date("g:i A", strtotime($ev_login_time)) . " for event '{$event_title}'."
+            ]);
+            exit();
+        }
+        if (!empty($ev_login_cutoff) && $current_time_formatted > $ev_login_cutoff) {
+            echo json_encode([
+                "status"  => "error",
+                "message" => "Log-in cutoff reached (" . date("g:i A", strtotime($ev_login_cutoff)) . "). Log-in is closed for event '{$event_title}'."
+            ]);
+            exit();
+        }
+    } elseif ($is_logout) {
+        if (empty($ev_logout_time)) {
+            echo json_encode([
+                "status"  => "error",
+                "message" => "Event '{$event_title}' does not have a log-out schedule configured."
+            ]);
+            exit();
+        }
+        if ($current_time_formatted < $ev_logout_time) {
+            echo json_encode([
+                "status"  => "error",
+                "message" => "Log-out has not started yet. Log-out starts at " . date("g:i A", strtotime($ev_logout_time)) . " for event '{$event_title}'."
+            ]);
+            exit();
+        }
+        if (!empty($ev_logout_cutoff) && $current_time_formatted > $ev_logout_cutoff) {
+            echo json_encode([
+                "status"  => "error",
+                "message" => "Log-out cutoff reached (" . date("g:i A", strtotime($ev_logout_cutoff)) . "). Log-out is closed for event '{$event_title}'."
+            ]);
             exit();
         }
     }

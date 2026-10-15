@@ -36,7 +36,11 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-Requested-With':'XMLHttpRequest' },
             body: JSON.stringify(data)
-        }).then(r=>r.json()).then(j=>{
+        }).then(r => {
+            return r.json().catch(() => {
+                throw new Error('Server returned unexpected response (status ' + r.status + ')');
+            });
+        }).then(j => {
             if(j.success){
                 window.location = j.redirect || '/admin-dashboard';
             } else {
@@ -45,10 +49,10 @@
                 alertBox.textContent = j.message || 'Invalid Username or Password';
                 errorPlaceholder.appendChild(alertBox);
             }
-        }).catch(()=>{
+        }).catch(err => {
             const alertBox = document.createElement('div');
             alertBox.className = 'alert alert-danger';
-            alertBox.textContent = 'Network error';
+            alertBox.textContent = (err && err.message) ? err.message : 'Network error. Please try again.';
             errorPlaceholder.appendChild(alertBox);
         });
     });
