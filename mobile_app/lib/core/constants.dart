@@ -18,7 +18,7 @@ class AppColors {
 
 class AppConfig {
   // Default host for production server (configurable dynamically in app)
-  static String _activeHost = "deanadmin.infinityfreeapp.com";
+  static String _activeHost = kIsWeb ? "localhost" : "deanadmin.infinityfreeapp.com";
   static final List<String> _customHosts = [];
 
   static String get serverHost => _activeHost;
@@ -41,16 +41,17 @@ class AppConfig {
       if (savedHost != null &&
           savedHost.trim().isNotEmpty &&
           savedHost.trim() != "192.168.1.3" &&
-          savedHost.trim() != "YOUR_SERVER_IP_OR_DOMAIN") {
+          savedHost.trim() != "YOUR_SERVER_IP_OR_DOMAIN" &&
+          (!kIsWeb || (savedHost.trim() != "deanadmin.infinityfreeapp.com"))) {
         _activeHost = savedHost.trim().replaceAll(RegExp(r'/+$'), '');
         if (!_customHosts.contains(_activeHost)) {
           _customHosts.insert(0, _activeHost);
         }
       } else {
-        _activeHost = "deanadmin.infinityfreeapp.com";
+        _activeHost = kIsWeb ? "localhost" : "deanadmin.infinityfreeapp.com";
       }
     } catch (_) {
-      _activeHost = "deanadmin.infinityfreeapp.com";
+      _activeHost = kIsWeb ? "localhost" : "deanadmin.infinityfreeapp.com";
     }
   }
 
@@ -73,11 +74,17 @@ class AppConfig {
     }
 
     if (kIsWeb) {
-      return "http://localhost/SBC_Internship_Attendance_System/backend";
+      if (h == 'localhost' || h == '127.0.0.1' || h.isEmpty || h == 'deanadmin.infinityfreeapp.com') {
+        return "http://localhost/CIT%20Attendance%20System/backend";
+      }
+      if (h.contains('.') && !RegExp(r'^\d+\.\d+\.\d+\.\d+$').hasMatch(h)) {
+        return "http://$h/backend";
+      }
+      return "http://$h/CIT%20Attendance%20System/backend";
     }
     try {
       if (Platform.isWindows && (h == 'localhost' || h == '127.0.0.1')) {
-        return "http://localhost/SBC_Internship_Attendance_System/backend";
+        return "http://localhost/CIT%20Attendance%20System/backend";
       }
     } catch (_) {}
 
@@ -87,7 +94,7 @@ class AppConfig {
     }
 
     // Local IP on local XAMPP network
-    return "http://$h/SBC_Internship_Attendance_System/backend";
+    return "http://$h/CIT%20Attendance%20System/backend";
   }
 
   static String get baseUrl => getBaseUrlForHost(_activeHost);

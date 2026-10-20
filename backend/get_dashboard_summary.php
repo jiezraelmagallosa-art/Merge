@@ -1,6 +1,6 @@
 <?php
 /**
- * SBC Internship Attendance System - Backend API
+ * CIT Attendance System - Backend API
  * Endpoint: get_dashboard_summary.php
  */
 
@@ -21,26 +21,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 // Connect to MySQL database
 require_once 'db_connect.php';
 
-
 $student_id = isset($_GET['student_id']) ? intval($_GET['student_id']) : (isset($_GET['ojt_id']) ? intval($_GET['ojt_id']) : 0);
 
 if ($student_id <= 0) {
     http_response_code(400);
     echo json_encode([
         "status" => "error",
-        "message" => "Student ID / OJT ID is required."
+        "message" => "Student ID is required."
     ]);
     exit();
 }
 
-
-$ojt_id = $student_id;
-$target_hours = 480;
-
-$query = "SELECT
-            COUNT(DISTINCT a.date) as total_days
+// Total distinct days attended
+$query = "SELECT COUNT(DISTINCT a.date) as total_days
           FROM attendance a
-          WHERE (a.student_id = ? OR a.ojt_id = ?) AND (a.status IS NULL OR a.status != 'Rejected')";
+          WHERE (a.student_id = ? OR a.ojt_id = ?) 
+            AND (a.status IS NULL OR a.status != 'Rejected')";
 
 $stmt = $conn->prepare($query);
 $stmt->bind_param("ii", $student_id, $student_id);
@@ -49,21 +45,8 @@ $result = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
 $total_days = intval($result['total_days'] ?? 0);
-$total_minutes = 0;
-$total_hours = 0;
-$consumed_mins = 0;
 
-$target_total_minutes = $target_hours * 60;
-$remaining_total_minutes = max(0, $target_total_minutes - $total_minutes);
-$remaining_hours = floor($remaining_total_minutes / 60);
-$remaining_mins = $remaining_total_minutes % 60;
-$progress_percentage = $target_total_minutes > 0 ? min(100.0, round(($total_minutes / $target_total_minutes) * 100, 1)) : 0;
-$is_completed = ($progress_percentage >= 100.0);
-$completion_message = $is_completed ? "🎉 Congratulations! You have successfully completed your {$target_hours} goal hours! SBC is proud of your hard work and dedication." : "";
-
-require_once 'site_helper.php';
-$site_breakdown_data = getStudentSiteBreakdown($conn, $student_id);
-
+// Today's event
 $today = date('Y-m-d');
 $today_event = null;
 $ev_stmt = $conn->prepare("SELECT event_id, event_name, event_date, login_time, logout_time, login_cutoff_time, logout_cutoff_time, grace_period FROM events WHERE event_date = ? ORDER BY event_id ASC LIMIT 1");
@@ -74,23 +57,55 @@ if ($ev_stmt) {
     $ev_stmt->close();
 }
 
+// Today's attendance for student
+$att_stmt = $conn->prepare("SELECT attendance_id, time_in_morning, time_out_morning, time_in_afternoon, time_out_afternoon, status, morning_status, afternoon_status, morning_remarks, afternoon_remarks FROM attendance WHERE (student_id = ? OR ojt_id = ?) AND date = ? LIMIT 1");
+$today_att = null;
+if ($att_stmt) {
+    $att_stmt->bind_param("iis", $student_id, $student_id, $today);
+    $att_stmt->execute();
+    $today_att = $att_stmt->get_result()->fetch_assoc();
+    $att_stmt->close();
+}
+
+$has_timed_in = false;
+$has_timed_out = false;
+$attendance_status_label = "Not Recorded";
+
+if ($today_att) {
+    if (!empty($today_att['time_in_morning']) || !empty($today_att['time_in_afternoon'])) {
+        $has_timed_in = true;
+        $attendance_status_label = "Timed In (Present)";
+    }
+    if (!empty($today_att['time_out_morning']) || !empty($today_att['time_out_afternoon'])) {
+        $has_timed_out = true;
+        $attendance_status_label = "Completed Attendance";
+    }
+    if ($today_att['status'] === 'Confirmed') {
+        $attendance_status_label = "Verified Present";
+    }
+}
+
+// Student & Dean details
+$st_stmt = $conn->prepare("SELECT s.full_name, s.student_number, u.full_name as dean_name FROM student s LEFT JOIN users u ON s.dean_id = u.user_id WHERE s.student_id = ? LIMIT 1");
+$st_info = null;
+if ($st_stmt) {
+    $st_stmt->bind_param("i", $student_id);
+    $st_stmt->execute();
+    $st_info = $st_stmt->get_result()->fetch_assoc();
+    $st_stmt->close();
+}
+
 echo json_encode([
     "status" => "success",
     "data" => [
-        "target_hours" => $target_hours,
-        "total_hours" => $total_hours,
-        "consumed_minutes" => $total_minutes,
-        "remaining_minutes" => $consumed_mins,
-        "formatted_time" => "{$total_hours} hrs {$consumed_mins} mins",
-        "formatted_consumed_of_target" => "{$total_hours} hrs {$consumed_mins} mins / {$target_hours} hrs",
-        "remaining_hours" => $remaining_hours,
-        "remaining_mins" => $remaining_mins,
-        "formatted_remaining" => "{$remaining_hours} hrs {$remaining_mins} mins left",
-        "progress_percentage" => $progress_percentage,
-        "total_days" => intval($result['total_days'] ?? 0),
-        "is_completed" => $is_completed,
-        "completion_message" => $completion_message,
-        "site_breakdown" => $site_breakdown_data['sites'],
+        "total_days" => $total_days,
+        "total_events_attended" => $total_days,
+        "formatted_time" => "$total_days Event Days",
+        "has_timed_in" => $has_timed_in,
+        "has_timed_out" => $has_timed_out,
+        "today_status_label" => $attendance_status_label,
+        "today_attendance" => $today_att,
+        "dean_name" => $st_info['dean_name'] ?? 'Assigned Dean / Officer',
         "today_event" => $today_event ? [
             "has_event" => true,
             "event_id" => intval($today_event['event_id']),
@@ -101,8 +116,9 @@ echo json_encode([
             "logout_cutoff_time" => $today_event['logout_cutoff_time']
         ] : [
             "has_event" => false,
-            "message" => "No event added for today."
-        ]
+            "message" => "No scheduled event for today."
+        ],
+        "site_breakdown" => []
     ]
 ]);
 

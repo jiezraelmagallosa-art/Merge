@@ -71,7 +71,7 @@ class DtrLogScreenState extends State<DtrLogScreen> {
         backgroundColor: primaryNavy,
         icon: const Icon(Icons.picture_as_pdf, color: Colors.white),
         label: const Text(
-          'Export DTR (PDF)',
+          'Export Attendance Log (PDF)',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
@@ -283,12 +283,12 @@ class DtrLogScreenState extends State<DtrLogScreen> {
                   const SizedBox(height: 10),
                   const Divider(height: 12, thickness: 0.5),
 
-                  // Credited Hours Footer
+                  // Event Attendance Status Footer
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
-                        'Credited Time:',
+                        'Event Verification:',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
@@ -296,13 +296,15 @@ class DtrLogScreenState extends State<DtrLogScreen> {
                         ),
                       ),
                       Text(
-                        log['formatted_credited_time'] ?? '0 hrs 0 mins',
+                        (log['status'] == 'Confirmed' || log['status'] == 'Approved')
+                            ? 'Verified Present'
+                            : (log['status'] ?? 'Recorded'),
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
                           color: (log['status'] == 'Rejected')
                               ? Colors.red.shade700
-                              : primaryNavy,
+                              : const Color(0xFF166534),
                         ),
                       ),
                     ],

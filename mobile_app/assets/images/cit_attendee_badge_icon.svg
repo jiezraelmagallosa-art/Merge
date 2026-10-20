@@ -1,0 +1,161 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <!-- Deep Obsidian Radial Gradient -->
+    <radialGradient id="badgeBg" cx="50%" cy="35%" r="75%">
+      <stop offset="0%" stop-color="#1E293B" />
+      <stop offset="45%" stop-color="#0F172A" />
+      <stop offset="90%" stop-color="#050811" />
+      <stop offset="100%" stop-color="#02040A" />
+    </radialGradient>
+
+    <!-- Rich Amber Gold 3D Gradient -->
+    <linearGradient id="goldPlate" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FEF08A" />
+      <stop offset="25%" stop-color="#F59E0B" />
+      <stop offset="65%" stop-color="#D97706" />
+      <stop offset="85%" stop-color="#FBBF24" />
+      <stop offset="100%" stop-color="#78350F" />
+    </linearGradient>
+
+    <!-- Neon Emerald Gradient -->
+    <linearGradient id="emeraldNeon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6EE7B7" />
+      <stop offset="40%" stop-color="#10B981" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+
+    <!-- Filters -->
+    <filter id="badgeShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="24" stdDeviation="30" flood-color="#000000" flood-opacity="0.8" />
+    </filter>
+
+    <filter id="emeraldGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="16" stdDeviation="22" flood-color="#10B981" flood-opacity="0.7" />
+    </filter>
+
+    <filter id="goldGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="b1" />
+      <feMerge>
+        <feMergeNode in="b1" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- 1. Squircle Canvas -->
+  <rect width="1024" height="1024" rx="228" fill="url(#badgeBg)" />
+
+  <!-- 2. Dual Metallic Outer Ring -->
+  <rect x="14" y="14" width="996" height="996" rx="218" fill="none" stroke="url(#goldPlate)" stroke-width="5" stroke-opacity="0.35" />
+
+  <!-- 3. Biometric Fingerprint Arcs in Background -->
+  <g fill="none" stroke="#F59E0B" stroke-opacity="0.08" stroke-width="4">
+    <circle cx="512" cy="460" r="140" stroke-dasharray="16 12" />
+    <circle cx="512" cy="460" r="190" stroke-dasharray="24 16" />
+    <circle cx="512" cy="460" r="240" stroke-dasharray="32 20" />
+    <circle cx="512" cy="460" r="290" stroke-dasharray="40 24" />
+    <circle cx="512" cy="460" r="340" stroke-dasharray="48 28" />
+  </g>
+
+  <!-- 4. Central Circular Attendee Medal / Smart Shield -->
+  <g filter="url(#badgeShadow)">
+    <!-- Outer Golden Gear/Coin Ridge -->
+    <circle cx="512" cy="450" r="290" fill="none" stroke="url(#goldPlate)" stroke-width="16" />
+    <!-- Secondary Inset Ring -->
+    <circle cx="512" cy="450" r="274" fill="#090D16" stroke="#FDE68A" stroke-width="2.5" stroke-opacity="0.5" />
+    <!-- Dark Inner Radial Backdrop -->
+    <radialGradient id="innerPlateGrad" cx="50%" cy="40%" r="55%">
+      <stop offset="0%" stop-color="#1E293B" />
+      <stop offset="70%" stop-color="#0B0F19" />
+      <stop offset="100%" stop-color="#050811" />
+    </radialGradient>
+    <circle cx="512" cy="450" r="265" fill="url(#innerPlateGrad)" />
+  </g>
+
+  <!-- 5. Academic Mortarboard Crest Icon at Top of Circle -->
+  <g filter="url(#goldGlow)">
+    <polygon points="512,230 596,262 512,294 428,262" fill="url(#goldPlate)" />
+    <!-- Tassel -->
+    <path d="M456,274 Q434,295 440,320" fill="none" stroke="#FDE68A" stroke-width="4" stroke-linecap="round" />
+    <circle cx="440" cy="324" r="5" fill="#FDE68A" />
+  </g>
+
+  <!-- 6. Stylized "CIT" Centerpiece Text -->
+  <g filter="url(#badgeShadow)">
+    <text x="512" y="475"
+          font-family="system-ui, -apple-system, 'Plus Jakarta Sans', Roboto, sans-serif"
+          font-size="160"
+          font-weight="900"
+          letter-spacing="12"
+          text-anchor="middle"
+          fill="url(#goldPlate)">
+      CIT
+    </text>
+    <!-- Specular text reflection -->
+    <text x="512" y="475"
+          font-family="system-ui, -apple-system, 'Plus Jakarta Sans', Roboto, sans-serif"
+          font-size="160"
+          font-weight="900"
+          letter-spacing="12"
+          text-anchor="middle"
+          fill="none"
+          stroke="#FFFFFF"
+          stroke-width="3"
+          stroke-opacity="0.4">
+      CIT
+    </text>
+  </g>
+
+  <!-- 7. Dynamic "ATTENDEE" Banner Plate -->
+  <g filter="url(#badgeShadow)">
+    <!-- Elegant Gold Curved/Cut Pill -->
+    <path d="M260 550 L764 550 L730 630 L294 630 Z"
+          fill="#0F172A" stroke="url(#goldPlate)" stroke-width="6" stroke-linejoin="round" />
+    
+    <!-- Inner High-Contrast Inset -->
+    <path d="M272 558 L752 558 L724 622 L300 622 Z"
+          fill="#090D16" stroke="#FDE047" stroke-width="1.5" stroke-opacity="0.4" />
+
+    <!-- "ATTENDEE" Typography -->
+    <text x="512" y="602"
+          font-family="system-ui, -apple-system, 'Plus Jakarta Sans', Roboto, sans-serif"
+          font-size="44"
+          font-weight="900"
+          letter-spacing="12"
+          text-anchor="middle"
+          fill="url(#goldPlate)">
+      ATTENDEE
+    </text>
+  </g>
+
+  <!-- 8. Luminous Verified Checkmark (Anchored at Bottom Right) -->
+  <g filter="url(#emeraldGlow)">
+    <!-- High-Contrast Black Outline -->
+    <path d="M430 720 L515 805 L755 540"
+          fill="none"
+          stroke="#030712"
+          stroke-width="60"
+          stroke-linecap="round"
+          stroke-linejoin="round" />
+    <!-- Glowing Emerald Check -->
+    <path d="M430 720 L515 805 L755 540"
+          fill="none"
+          stroke="url(#emeraldNeon)"
+          stroke-width="44"
+          stroke-linecap="round"
+          stroke-linejoin="round" />
+    <!-- Checkmark Highlight Glint -->
+    <path d="M438 718 L515 795 L746 544"
+          fill="none"
+          stroke="#ECFDF5"
+          stroke-width="12"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          opacity="0.9" />
+  </g>
+
+  <!-- 9. Verification Pulse Beacon Dot -->
+  <circle cx="765" cy="525" r="14" fill="#34D399" filter="url(#goldGlow)" />
+  <circle cx="765" cy="525" r="6" fill="#FFFFFF" />
+
+</svg>

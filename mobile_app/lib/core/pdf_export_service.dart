@@ -24,14 +24,14 @@ class PdfExportService {
               child: pw.Column(
                 children: [
                   pw.Text(
-                    'DAILY TIME RECORD (DTR)',
+                    'CIT EVENT ATTENDANCE RECORD',
                     style: pw.TextStyle(
                       fontSize: 20,
                       fontWeight: pw.FontWeight.bold,
                     ),
                   ),
                   pw.SizedBox(height: 4),
-                  pw.Text('OJT Attendance Report for Dean Submission'),
+                  pw.Text('Official Event Attendance Report for Dean / Officer Submission'),
                   pw.SizedBox(height: 16),
                 ],
               ),
@@ -50,7 +50,7 @@ class PdfExportService {
                     'Student Name: $studentName',
                     style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                   ),
-                  pw.Text('OJT ID / Student No: $ojtId'),
+                  pw.Text('Student ID / Number: $ojtId'),
                 ],
               ),
             ),

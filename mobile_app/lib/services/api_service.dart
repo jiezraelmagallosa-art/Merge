@@ -4,6 +4,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:encrypt/encrypt.dart' as enc;
 import '../core/constants.dart';
@@ -55,11 +56,12 @@ class InfinityHttpClient {
   }
 
   static Map<String, String> _buildHeaders(Map<String, String>? headers) {
-    final map = <String, String>{
-      'User-Agent': _userAgent,
-    };
-    if (_testCookie != null && _testCookie!.isNotEmpty) {
-      map['Cookie'] = '__test=$_testCookie';
+    final map = <String, String>{};
+    if (!kIsWeb) {
+      map['User-Agent'] = _userAgent;
+      if (_testCookie != null && _testCookie!.isNotEmpty) {
+        map['Cookie'] = '__test=$_testCookie';
+      }
     }
     if (headers != null) {
       map.addAll(headers);
@@ -76,7 +78,7 @@ class InfinityHttpClient {
         .get(url, headers: _buildHeaders(headers))
         .timeout(timeout);
 
-    if (response.body.contains('aes.js') || response.body.contains('toNumbers(')) {
+    if (!kIsWeb && (response.body.contains('aes.js') || response.body.contains('toNumbers('))) {
       final cookie = _solveChallenge(response.body);
       if (cookie != null) {
         _testCookie = cookie;
@@ -95,8 +97,8 @@ class InfinityHttpClient {
     Encoding? encoding,
     Duration timeout = const Duration(seconds: 10),
   }) async {
-    // If we don't have the __test cookie yet, obtain it first via a quick probe
-    if (_testCookie == null || _testCookie!.isEmpty) {
+    // Only probe on native platforms
+    if (!kIsWeb && (_testCookie == null || _testCookie!.isEmpty)) {
       try {
         final probe = await http
             .get(url, headers: _buildHeaders(null))
@@ -119,7 +121,7 @@ class InfinityHttpClient {
         )
         .timeout(timeout);
 
-    if (response.body.contains('aes.js') || response.body.contains('toNumbers(')) {
+    if (!kIsWeb && (response.body.contains('aes.js') || response.body.contains('toNumbers('))) {
       final cookie = _solveChallenge(response.body);
       if (cookie != null) {
         _testCookie = cookie;
@@ -143,6 +145,7 @@ class ApiService {
       "Server unavailable. Working in Offline Mode.";
 
   static Map<String, dynamic> _handleException(dynamic e) {
+    debugPrint("API Exception in _handleException: $e");
     return {
       "status": "error",
       "is_connection_error": true,
@@ -286,6 +289,13 @@ class ApiService {
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       } else {
+        try {
+          final errBody = jsonDecode(response.body);
+          if (errBody is Map<String, dynamic> &&
+              errBody.containsKey('message')) {
+            return errBody;
+          }
+        } catch (_) {}
         return {
           "status": "error",
           "message": serverUnavailableMsg,

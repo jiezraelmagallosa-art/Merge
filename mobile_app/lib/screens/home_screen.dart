@@ -60,12 +60,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   DateTime _now = DateTime.now();
 
 
-  String _totalHoursText = "0 hrs 0 mins";
-  String _formattedConsumedText = "0 hrs 0 mins / 480 hrs";
-  String _formattedRemainingText = "480 hrs 0 mins left";
-  int _totalHours = 0;
-  final int _targetHours = 480;
-  List<dynamic> _siteBreakdown = [];
+  int _totalDays = 0;
+  String _todayStatusLabel = "Not Recorded";
+  bool _hasTimedIn = false;
+  bool _hasTimedOut = false;
+  Map<String, dynamic>? _todayEvent;
+  String _deanName = "Assigned Dean / Officer";
 
   static const Color primaryNavy = Color(0xFF0F172A);
   static const Color accentGold = Color(0xFFF59E0B);
@@ -314,15 +314,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (!mounted) return;
 
     if (result['status'] == 'success' && result['data'] != null) {
+      final data = result['data'];
       setState(() {
-        _totalHoursText = result['data']['formatted_time'] ?? "0 hrs 0 mins";
-        _formattedConsumedText =
-            result['data']['formatted_consumed_of_target'] ??
-            "$_totalHoursText / 480 hrs";
-        _formattedRemainingText =
-            result['data']['formatted_remaining'] ?? "480 hrs 0 mins left";
-        _totalHours = result['data']['total_hours'] ?? 0;
-        _siteBreakdown = result['data']['site_breakdown'] ?? [];
+        _totalDays = data['total_days'] ?? data['total_events_attended'] ?? 0;
+        _todayStatusLabel = data['today_status_label'] ?? 'Not Recorded';
+        _hasTimedIn = data['has_timed_in'] ?? false;
+        _hasTimedOut = data['has_timed_out'] ?? false;
+        _todayEvent = (data['today_event'] != null && data['today_event']['has_event'] == true)
+            ? data['today_event']
+            : null;
+        _deanName = data['dean_name'] ?? 'Assigned Dean / Officer';
         _isLoadingSummary = false;
       });
     } else {
@@ -608,7 +609,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.assessment_outlined),
-            label: 'DTR Log',
+            label: 'Events Log',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.edit_note_rounded),
@@ -628,8 +629,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildAttendanceHome() {
-    double progressValue = (_totalHours / _targetHours).clamp(0.0, 1.0);
-
     String formattedTime = DateFormat('hh:mm:ss a').format(_now);
     String formattedDate = DateFormat('EEEE, MMMM d, yyyy').format(_now);
 
@@ -992,256 +991,29 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ),
             ],
           ),
-          if (_siteBreakdown.isNotEmpty) ...[
-            _buildSiteBreakdownOverview(),
-            const SizedBox(height: 16),
-          ],
+          const SizedBox(height: 18),
 
-          const Text(
-            'Daily Progress',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: primaryNavy,
-            ),
-          ),
-          const SizedBox(height: 12),
+          // Today's Scheduled Event Card
+          _buildTodayEventCard(),
+          const SizedBox(height: 14),
 
-          _buildSummaryCard(
-            title: 'Total Hours Consumed',
-            value: _isLoadingSummary ? 'Loading...' : _formattedConsumedText,
-            subText: _isLoadingSummary
-                ? 'Updated from system records'
-                : 'Remaining: $_formattedRemainingText',
-            icon: Icons.access_time_filled,
-          ),
-          const SizedBox(height: 12),
-
-          GestureDetector(
-            onTap: progressValue >= 1.0
-                ? () {
-                    MotivationalMessages.showGoalCompletionDialog(context);
-                  }
-                : null,
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: progressValue >= 1.0 ? const Color(0xFFFFFDF0) : cardWhite,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: progressValue >= 1.0
-                      ? const Color(0xFFFFB800)
-                      : Colors.grey.shade300,
-                  width: progressValue >= 1.0 ? 1.5 : 1.0,
-                ),
-                boxShadow: progressValue >= 1.0
-                    ? [
-                        BoxShadow(
-                          color: const Color(0xFFFFB800).withValues(alpha: 0.15),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ]
-                    : null,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Row(
-                          children: [
-                            if (progressValue >= 1.0) ...[
-                              const Icon(
-                                Icons.emoji_events_rounded,
-                                color: accentGold,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 6),
-                            ],
-                            Expanded(
-                              child: Text(
-                                progressValue >= 1.0
-                                    ? '🎉 Goal Hours Completed!'
-                                    : 'Goal Progress (480 Hrs Required)',
-                                style: TextStyle(
-                                  color: progressValue >= 1.0
-                                      ? primaryNavy
-                                      : Colors.black54,
-                                  fontSize: 13,
-                                  fontWeight: progressValue >= 1.0
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        _formattedConsumedText,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: primaryNavy,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 10),
-                  LinearProgressIndicator(
-                    value: progressValue,
-                    backgroundColor: Colors.grey.shade200,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      progressValue >= 1.0
-                          ? const Color(0xFF2E7D32)
-                          : accentGold,
-                    ),
-                    minHeight: 10,
-                    borderRadius: BorderRadius.circular(5),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '${(progressValue * 100).toStringAsFixed(1)}% of 480 required hours completed',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: progressValue >= 1.0
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                          color: progressValue >= 1.0
-                              ? const Color(0xFF2E7D32)
-                              : Colors.grey,
-                        ),
-                      ),
-                      if (progressValue >= 1.0)
-                        const Row(
-                          children: [
-                            Icon(
-                              Icons.check_circle_rounded,
-                              color: Color(0xFF2E7D32),
-                              size: 14,
-                            ),
-                            SizedBox(width: 4),
-                            Text(
-                              'COMPLETED',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF2E7D32),
-                              ),
-                            ),
-                          ],
-                        ),
-                    ],
-                  ),
-                  if (progressValue >= 1.0) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0F172A).withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: const Color(0xFFFFB800).withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: const Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            Icons.stars_rounded,
-                            color: accentGold,
-                            size: 20,
-                          ),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              '🎉 Congratulations! You have successfully finished your required 480 goal hours! SBC is proud of your hard work, dedication, and commitment. Tap to celebrate! 🎓✨',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: primaryNavy,
-                                height: 1.35,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
+          // Student Attendance Standing & Summary Card
+          _buildAttendanceSummaryCard(),
+          const SizedBox(height: 24),
         ],
       ),
     );
   }
 
+  Widget _buildTodayEventCard() {
+    final bool hasEvent = _todayEvent != null;
+    final String eventName = hasEvent ? (_todayEvent!['event_name'] ?? 'Department Event') : 'No Scheduled Event Today';
+    final String loginTime = hasEvent ? (_todayEvent!['login_time'] ?? '--:--') : '--:--';
+    final String logoutTime = hasEvent ? (_todayEvent!['logout_time'] ?? '--:--') : '--:--';
+    final String cutoff = hasEvent ? (_todayEvent!['login_cutoff_time'] ?? '--:--') : '--:--';
 
-  Widget _buildSummaryCard({
-    required String title,
-    required String value,
-    required String subText,
-    required IconData icon,
-  }) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: cardWhite,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: primaryNavy.withValues(alpha: 0.1),
-            child: Icon(icon, color: primaryNavy),
-          ),
-          const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(color: Colors.black54, fontSize: 13),
-              ),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: primaryNavy,
-                ),
-              ),
-              Text(
-                subText,
-                style: const TextStyle(fontSize: 11, color: Colors.grey),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSiteBreakdownOverview() {
-    final currentSite = _siteBreakdown.firstWhere(
-      (s) => s['is_current'] == true,
-      orElse: () => _siteBreakdown.last,
-    );
-    final hasMultipleSites = _siteBreakdown.length > 1;
-
-    return Container(
-      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: cardWhite,
         borderRadius: BorderRadius.circular(12),
@@ -1255,12 +1027,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             children: [
               const Row(
                 children: [
-                  Icon(Icons.business_rounded, color: primaryNavy, size: 18),
+                  Icon(Icons.event_note_rounded, color: primaryNavy, size: 20),
                   SizedBox(width: 8),
                   Text(
-                    'Training Facility Assignment',
+                    "Today's Event",
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 15,
                       fontWeight: FontWeight.bold,
                       color: primaryNavy,
                     ),
@@ -1270,87 +1042,163 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2E7D32),
-                  borderRadius: BorderRadius.circular(10),
+                  color: hasEvent ? const Color(0xFFDCFCE7) : Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Text(
-                  'ACTIVE SITE',
+                child: Text(
+                  hasEvent ? 'ACTIVE EVENT' : 'NO EVENT',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: hasEvent ? const Color(0xFF166534) : Colors.black54,
                     fontWeight: FontWeight.bold,
-                    fontSize: 9.5,
+                    fontSize: 10,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 10),
           Text(
-            currentSite['site_name'] ?? 'Training Site',
+            eventName,
             style: const TextStyle(
-              fontSize: 13.5,
+              fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: primaryNavy,
             ),
           ),
-          if (currentSite['location'] != null && currentSite['location'].toString().isNotEmpty)
-            Text(
-              currentSite['location'],
-              style: const TextStyle(fontSize: 11.5, color: Colors.black54),
+          const SizedBox(height: 6),
+          if (hasEvent) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: primaryNavy.withValues(alpha: 0.04),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Login: $loginTime', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: primaryNavy)),
+                  Text('Cutoff: $cutoff', style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                  Text('Logout: $logoutTime', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: primaryNavy)),
+                ],
+              ),
             ),
-          if (hasMultipleSites) ...[
-            const Divider(height: 16),
-            Row(
-              children: [
-                const Icon(Icons.history_edu_rounded, size: 14, color: Color(0xFF8C6600)),
-                const SizedBox(width: 4),
-                Text(
-                  'Multi-Site Transfer History (${_siteBreakdown.length} locations):',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF8C6600),
-                  ),
+          ] else ...[
+            const Text(
+              'No department assembly or activity is currently scheduled for today. The Dean or Officer will announce upcoming events.',
+              style: TextStyle(fontSize: 12, color: Colors.black54, height: 1.3),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAttendanceSummaryCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cardWhite,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.verified_user_rounded, color: primaryNavy, size: 20),
+              SizedBox(width: 8),
+              Text(
+                'Attendance Status & Records',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: primaryNavy,
                 ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            ..._siteBreakdown.map((s) {
-              final bool isCurr = s['is_current'] == true;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 4.0),
+              ),
+            ],
+          ),
+          const Divider(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Total Events Attended:',
+                style: TextStyle(color: Colors.black54, fontSize: 13),
+              ),
+              Text(
+                _isLoadingSummary ? 'Loading...' : '$_totalDays Events',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: primaryNavy,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                "Today's Attendance Status:",
+                style: TextStyle(color: Colors.black54, fontSize: 13),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: (_hasTimedIn || _todayStatusLabel.contains('Present') || _todayStatusLabel.contains('Verified'))
+                      ? const Color(0xFFDCFCE7)
+                      : Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(6),
+                ),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Expanded(
-                      child: Text(
-                        '${isCurr ? "▶ Current" : "• Earlier"}: ${s['site_name']}',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: isCurr ? FontWeight.bold : FontWeight.normal,
-                          color: isCurr ? primaryNavy : Colors.black54,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
+                    if (_hasTimedIn) ...[
+                      const Icon(Icons.check_circle, size: 12, color: Color(0xFF166534)),
+                      const SizedBox(width: 4),
+                    ],
                     Text(
-                      s['formatted_time'] ?? '',
+                      _isLoadingSummary
+                          ? 'Updating...'
+                          : (_hasTimedOut
+                              ? 'Completed'
+                              : (_hasTimedIn ? 'Timed In (Present)' : _todayStatusLabel)),
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: isCurr ? const Color(0xFF2E7D32) : Colors.blueGrey,
+                        color: (_hasTimedIn || _todayStatusLabel.contains('Present') || _todayStatusLabel.contains('Verified'))
+                            ? const Color(0xFF166534)
+                            : Colors.black54,
                       ),
                     ),
                   ],
                 ),
-              );
-            }),
-            const SizedBox(height: 4),
-            const Text(
-              'Hours from earlier locations remain safely recorded towards your total goal.',
-              style: TextStyle(fontSize: 10, color: Colors.grey, fontStyle: FontStyle.italic),
-            ),
-          ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Supervising Officer / Dean:',
+                style: TextStyle(color: Colors.black54, fontSize: 13),
+              ),
+              Flexible(
+                child: Text(
+                  _deanName,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: primaryNavy,
+                    fontSize: 12.5,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );

@@ -294,7 +294,7 @@ INSERT IGNORE INTO admins (admin_id, username, password) VALUES
 
 -- Seed Default Dean Account (Password: password)
 INSERT IGNORE INTO users (user_id, full_name, email, password, role)
-VALUES (1, 'Dean Admin', 'dean@sbc.edu.ph', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.X2g14m.6C', 'Dean');
+VALUES (1, 'Dean Admin', 'dean@cit.edu.ph', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.X2g14m.6C', 'Dean');
 
 -- Seed Default Courses
 INSERT INTO course (course_code, course_name) VALUES

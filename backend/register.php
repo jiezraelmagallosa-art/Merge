@@ -122,12 +122,20 @@ if (empty($clean_year_level)) {
     $clean_year_level = !empty($year_level) ? $year_level : '4';
 }
 
-$stmt = $conn->prepare("INSERT INTO student (student_number, full_name, id_no, email, password, course_id, dean_id, year_level) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-$stmt->bind_param("sssssiis", $student_number, $full_name, $id_no, $email, $hashed_password, $course_id, $dean_id, $clean_year_level);
+$hashed_password = password_hash($pass, PASSWORD_DEFAULT);
 
-if ($stmt->execute()) {
-    $student_id = $conn->insert_id;
-    $stmt->close();
+try {
+    $stmt = $conn->prepare("INSERT INTO student (student_number, full_name, id_no, email, password, course_id, dean_id, year_level) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+    if (!$stmt) {
+        echo json_encode(["status" => "error", "message" => "Database error: " . $conn->error]);
+        $conn->close();
+        exit();
+    }
+    $stmt->bind_param("sssssiis", $student_number, $full_name, $id_no, $email, $hashed_password, $course_id, $dean_id, $clean_year_level);
+
+    if ($stmt->execute()) {
+        $student_id = $conn->insert_id;
+        $stmt->close();
 
     // Student registered successfully - ojt assignment omitted as system is for pure event attendance
 
@@ -207,12 +215,18 @@ if ($stmt->execute()) {
         "message" => "Account created successfully! You can now log in.",
         "student_id" => $student_id
     ]);
-} else {
+    } else {
+        echo json_encode([
+            "status" => "error",
+            "message" => "Registration failed: " . $stmt->error
+        ]);
+        $stmt->close();
+    }
+} catch (Throwable $e) {
     echo json_encode([
         "status" => "error",
-        "message" => "Registration failed: " . $stmt->error
+        "message" => "Registration failed: " . $e->getMessage()
     ]);
-    $stmt->close();
 }
 
 $conn->close();

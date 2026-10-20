@@ -1,6 +1,6 @@
 <?php
 /**
- * SBC Internship Attendance System - Backend API
+ * CIT Attendance System - Backend API
  * Endpoint: get_student_profile.php
  */
 
@@ -21,7 +21,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 // Connect to MySQL database
 require_once 'db_connect.php';
 
-
 $student_id = isset($_GET['student_id']) ? intval($_GET['student_id']) : 0;
 
 if ($student_id <= 0) {
@@ -29,7 +28,6 @@ if ($student_id <= 0) {
     echo json_encode(["status" => "error", "message" => "Student ID is required."]);
     exit();
 }
-
 
 $sql = "SELECT
             s.student_id,
@@ -39,17 +37,11 @@ $sql = "SELECT
             s.email,
             s.dean_id,
             s.course_id,
+            s.year_level,
             u.full_name AS dean_name,
             u.email AS dean_email,
             c.course_code,
-            c.course_name,
-            0 AS course_required_hours,
-            s.student_id AS ojt_id,
-            CONCAT('CIT-', s.student_number) AS ojt_no,
-            0 AS required_hours,
-            '' AS site_code,
-            'CIT Campus' AS site_name,
-            'CIT Campus' AS site_location
+            c.course_name
         FROM student s
         LEFT JOIN users u ON s.dean_id = u.user_id
         LEFT JOIN course c ON s.course_id = c.course_id
@@ -67,38 +59,46 @@ if (!$result || $result->num_rows === 0) {
 }
 
 $profile = $result->fetch_assoc();
-$ojt_id = $profile['student_id'] ?? 0;
+$stmt->close();
 
-$total_minutes = 0;
-$total_rendered_hours = 0;
-$remaining_minutes = 0;
-
-// Count total unique attendance days
-$days_stmt = $conn->prepare("SELECT COUNT(DISTINCT a.date) as total_days FROM attendance a WHERE (a.student_id = ? OR a.ojt_id = ?) AND (a.status IS NULL OR a.status != 'Rejected')");
+// Count total events attended (distinct days recorded in attendance)
+$days_stmt = $conn->prepare("
+    SELECT COUNT(DISTINCT a.date) as total_event_days 
+    FROM attendance a 
+    WHERE (a.student_id = ? OR a.ojt_id = ?) 
+      AND (a.status IS NULL OR a.status != 'Rejected')
+");
 $days_stmt->bind_param("ii", $student_id, $student_id);
 $days_stmt->execute();
-$total_days = intval($days_stmt->get_result()->fetch_assoc()['total_days'] ?? 0);
+$days_res = $days_stmt->get_result()->fetch_assoc();
+$total_event_days = intval($days_res['total_event_days'] ?? 0);
 $days_stmt->close();
 
-$req_h = intval($profile['required_hours'] ?? ($profile['course_required_hours'] ?? 480));
-$final_required_hours = ($req_h > 0) ? $req_h : 480;
+// Check if student has attendance today
+$today = date('Y-m-d');
+$today_stmt = $conn->prepare("
+    SELECT attendance_id, time_in_morning, time_out_morning, time_in_afternoon, time_out_afternoon, status, morning_status, afternoon_status
+    FROM attendance
+    WHERE (student_id = ? OR ojt_id = ?) AND date = ?
+    LIMIT 1
+");
+$today_stmt->bind_param("iis", $student_id, $student_id, $today);
+$today_stmt->execute();
+$today_att = $today_stmt->get_result()->fetch_assoc();
+$today_stmt->close();
 
-$is_completed = ($total_rendered_hours >= $final_required_hours);
+$has_attended_today = ($today_att !== null && ($today_att['time_in_morning'] || $today_att['time_in_afternoon']));
 
-$profile['rendered_hours'] = $total_rendered_hours;
-$profile['rendered_minutes'] = $remaining_minutes;
-$profile['formatted_rendered_time'] = "{$total_rendered_hours} hrs {$remaining_minutes} mins";
-$profile['total_days'] = $total_days;
-$profile['required_hours'] = $final_required_hours;
-$profile['is_completed'] = $is_completed;
-$profile['completion_message'] = $is_completed ? "🎉 Congratulations! You have successfully completed your {$final_required_hours} goal hours!" : "";
-$profile['site_breakdown'] = $site_breakdown_data['sites'];
+$profile['total_event_days'] = $total_event_days;
+$profile['has_attended_today'] = $has_attended_today;
+$profile['attendance_status'] = $has_attended_today ? 'Present Today' : 'No Log Today';
+$profile['today_attendance'] = $today_att;
+$profile['standing'] = 'Good Standing';
 
 echo json_encode([
     "status" => "success",
     "data" => $profile
 ]);
 
-$stmt->close();
 $conn->close();
 ?>

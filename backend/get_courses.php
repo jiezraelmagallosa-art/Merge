@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 // Connect to MySQL database
 require_once 'db_connect.php';
 
-$query = "SELECT course_id, course_code, course_name, COALESCE(required_hours, 480) AS required_hours FROM course ORDER BY course_code ASC";
+$query = "SELECT course_id, course_code, course_name FROM course ORDER BY course_code ASC";
 $result = $conn->query($query);
 
 $courses = [];
@@ -31,8 +31,7 @@ if ($result && $result->num_rows > 0) {
             "course_id" => intval($row['course_id']),
             "course_code" => $row['course_code'],
             "course_name" => $row['course_name'],
-            "required_hours" => intval($row['required_hours']),
-            "display_name" => $row['course_code'] . " - " . $row['course_name'] . " (" . $row['required_hours'] . " hrs)"
+            "display_name" => $row['course_code'] . " - " . $row['course_name']
         ];
     }
 }

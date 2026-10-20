@@ -164,10 +164,10 @@ class MotivationalMessages {
   ];
 
   static const List<String> completionMessages = [
-    "🎉 Congratulations! You have successfully completed your 480 goal hours! SBC is proud of your dedication and hard work!",
-    "🏆 Goal Achieved! You've finished your required goal hours. May this accomplishment open great opportunities for your career!",
-    "🌟 Saludo sa iyong dedikasyon! Natapos mo na ang iyong goal hours. Keep shining and reaching for your dreams!",
-    "🎓 Mission Accomplished! Congratulations on completing your required hours with excellence and perseverance!"
+    "🎉 Great job! You have verified your attendance for today's CIT event!",
+    "🏆 Event Attendance Recorded! CIT and your Dean acknowledge your active participation!",
+    "🌟 Saludo sa iyong dedikasyon! Active and verified for this department event.",
+    "🎓 Attendance Confirmed! Thank you for participating in today's CIT assembly!"
   ];
 
   static String getRandomCompletionMessage() {

@@ -44,8 +44,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
     },
   ];
 
-  int? _selectedDeanId;
-  List<Map<String, dynamic>> _deans = [];
+  int? _selectedDeanId = 1;
+  List<Map<String, dynamic>> _deans = [
+    {
+      "user_id": 1,
+      "full_name": "Dean Admin",
+      "display_name": "Dean Admin (dean@cit.edu.ph)",
+    },
+  ];
 
   String _selectedYearLevel = '4';
   final List<Map<String, String>> _yearLevels = [
@@ -58,8 +64,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchCourses();
-    _fetchDeans();
+    AppConfig.loadServerHost().then((_) {
+      if (mounted) {
+        _fetchCourses();
+        _fetchDeans();
+      }
+    });
   }
 
   Future<void> _fetchCourses() async {
@@ -99,7 +109,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 },
               )
               .toList();
-          _selectedDeanId = _deans.first['user_id'];
+          if (!_deans.any((d) => d['user_id'] == _selectedDeanId)) {
+            _selectedDeanId = _deans.first['user_id'];
+          }
         });
       }
     }
@@ -253,7 +265,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     const SizedBox(height: 4),
                     const Text(
-                      'Fill in your details to register for OJT Portal',
+                      'Fill in your details to register for CIT Attendance Portal',
                       style: TextStyle(color: Colors.white70, fontSize: 13),
                     ),
                     const SizedBox(height: 24),
@@ -439,7 +451,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 return DropdownMenuItem<int>(
                                   value: course['course_id'],
                                   child: Text(
-                                    course['display_name'],
+                                    course['display_name'] ?? "${course['course_code']} - ${course['course_name']}",
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 13,
@@ -461,7 +473,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
 
                             DropdownButtonFormField<int>(
-                              initialValue: _selectedDeanId,
+                              value: _deans.any((d) => d['user_id'] == _selectedDeanId)
+                                  ? _selectedDeanId
+                                  : (_deans.isNotEmpty ? _deans.first['user_id'] : null),
                               isExpanded: true,
                               dropdownColor: AppColors.primaryNavy,
                               style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),

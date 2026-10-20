@@ -3762,7 +3762,7 @@ async function openStudentDrawer(studentId) {
     <div style="border: 1px solid #fee2e2; padding: 1rem; border-radius: var(--radius-sm); background: #fef2f2; margin-top: 1.25rem;">
       <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: #b91c1c; margin-bottom: 0.35rem;">⚠️ Danger Zone: Delete Student Account</div>
       <p style="font-size: 0.78rem; color: #7f1d1d; margin: 0 0 0.75rem 0; line-height: 1.4;">
-        Permanently delete this student's account and remove all attendance records, facial verification photos, daily journals, and OJT hours from the database.
+        Permanently delete this student's account and remove all event attendance logs, facial verification photos, and records from the database.
       </p>
       <button type="button" class="btn btn-danger" style="padding: 0.45rem 0.95rem; font-size: 0.82rem; font-weight: 700;" onclick="deleteStudentAccount(${s.student_id}, '${escapeHtml(s.full_name).replace(/'/g, "\\'")}')">
         Delete Student Account
@@ -4058,7 +4058,7 @@ async function saveStudentAssignedCourse(studentId) {
 
 async function deleteStudentAccount(studentId, studentName) {
   const nameDisplay = studentName ? `"${studentName}"` : 'this student';
-  if (!confirm(`Are you sure you want to permanently delete the account of ${nameDisplay}?\n\nThis will permanently remove the student's profile, attendance records, facial verification photos, daily journals, and OJT records from the database.\n\nThis action CANNOT be undone.`)) {
+  if (!confirm(`Are you sure you want to permanently delete the account of ${nameDisplay}?\n\nThis will permanently remove the student's profile, event attendance logs, facial verification photos, and records from the database.\n\nThis action CANNOT be undone.`)) {
     return;
   }
 

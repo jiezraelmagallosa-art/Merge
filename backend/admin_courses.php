@@ -67,21 +67,16 @@ try {
         // ACTION: SAVE / UPDATE COURSE
         $course_code = isset($data['course_code']) ? strtoupper(trim($data['course_code'])) : '';
         $course_name = isset($data['course_name']) ? trim($data['course_name']) : '';
-        $required_hours = isset($data['required_hours']) ? intval($data['required_hours']) : 480;
 
         if (empty($course_code) || empty($course_name)) {
             echo json_encode(["status" => "error", "message" => "Course code and course name are required."]);
             exit();
         }
 
-        if ($required_hours <= 0) {
-            $required_hours = 480;
-        }
-
         if ($course_id > 0) {
-            // Update course details & required hours
-            $stmt = $conn->prepare("UPDATE course SET course_code = ?, course_name = ?, required_hours = ? WHERE course_id = ?");
-            $stmt->bind_param("ssii", $course_code, $course_name, $required_hours, $course_id);
+            // Update course details
+            $stmt = $conn->prepare("UPDATE course SET course_code = ?, course_name = ? WHERE course_id = ?");
+            $stmt->bind_param("ssi", $course_code, $course_name, $course_id);
             
             if ($stmt->execute()) {
                 echo json_encode([
@@ -105,13 +100,13 @@ try {
             $check_c->close();
 
             // Insert new course
-            $stmt = $conn->prepare("INSERT INTO course (course_code, course_name, required_hours) VALUES (?, ?, ?)");
-            $stmt->bind_param("ssi", $course_code, $course_name, $required_hours);
+            $stmt = $conn->prepare("INSERT INTO course (course_code, course_name) VALUES (?, ?)");
+            $stmt->bind_param("ss", $course_code, $course_name);
 
             if ($stmt->execute()) {
                 echo json_encode([
                     "status" => "success",
-                    "message" => "New academic program '{$course_code}' added successfully with {$required_hours} required curriculum hours.",
+                    "message" => "New academic program '{$course_code}' added successfully.",
                     "course_id" => $stmt->insert_id
                 ]);
             } else {
@@ -121,16 +116,15 @@ try {
         }
 
     } else {
-        // GET: Fetch all courses with enrolled interns count
+        // GET: Fetch all courses with enrolled students count
         $sql = "SELECT
                     c.course_id,
                     c.course_code,
                     c.course_name,
-                    COALESCE(c.required_hours, 480) AS required_hours,
                     COUNT(s.student_id) AS enrolled_students
                 FROM course c
                 LEFT JOIN student s ON c.course_id = s.course_id
-                GROUP BY c.course_id, c.course_code, c.course_name, c.required_hours
+                GROUP BY c.course_id, c.course_code, c.course_name
                 ORDER BY c.course_code ASC";
 
         $result = $conn->query($sql);
@@ -142,9 +136,8 @@ try {
                     "course_id" => intval($row['course_id']),
                     "course_code" => $row['course_code'],
                     "course_name" => $row['course_name'],
-                    "required_hours" => intval($row['required_hours']),
                     "enrolled_students" => intval($row['enrolled_students'] ?? 0),
-                    "display_name" => $row['course_code'] . " - " . $row['course_name'] . " (" . $row['required_hours'] . " hrs)"
+                    "display_name" => $row['course_code'] . " - " . $row['course_name']
                 ];
             }
         }

@@ -1,0 +1,168 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <!-- Background Gradient -->
+    <radialGradient id="bgGrad" cx="50%" cy="35%" r="75%">
+      <stop offset="0%" stop-color="#1E293B" />
+      <stop offset="45%" stop-color="#0F172A" />
+      <stop offset="100%" stop-color="#050811" />
+    </radialGradient>
+
+    <!-- Golden Metallic Gradient -->
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDE68A" />
+      <stop offset="25%" stop-color="#F59E0B" />
+      <stop offset="60%" stop-color="#D97706" />
+      <stop offset="85%" stop-color="#FBBF24" />
+      <stop offset="100%" stop-color="#B45309" />
+    </linearGradient>
+
+    <!-- Golden Outline Glow Gradient -->
+    <linearGradient id="goldStroke" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FDE047" />
+      <stop offset="50%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#78350F" />
+    </linearGradient>
+
+    <!-- Emerald Checkmark Gradient -->
+    <linearGradient id="emeraldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34D399" />
+      <stop offset="50%" stop-color="#10B981" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+
+    <!-- Drop Shadows and Glows -->
+    <filter id="neonGoldGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="16" result="blur1" />
+      <feGaussianBlur stdDeviation="32" result="blur2" />
+      <feMerge>
+        <feMergeNode in="blur2" />
+        <feMergeNode in="blur1" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <filter id="emeraldGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#10B981" flood-opacity="0.6" />
+    </filter>
+
+    <filter id="badgeShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="24" stdDeviation="28" flood-color="#000000" flood-opacity="0.75" />
+    </filter>
+
+    <!-- Inner Shield Clip -->
+    <clipPath id="shieldClip">
+      <path d="M512 170 L770 280 C770 540 650 720 512 830 C374 720 254 540 254 280 Z" />
+    </clipPath>
+  </defs>
+
+  <!-- Base Icon Squircle (iOS / Android Adaptive Canvas) -->
+  <rect width="1024" height="1024" rx="228" fill="url(#bgGrad)" />
+
+  <!-- Subtle Squircle Glassmorphic Rim Border -->
+  <rect x="12" y="12" width="1000" height="1000" rx="220" fill="none" stroke="url(#goldStroke)" stroke-width="4" opacity="0.4" />
+
+  <!-- Background Tech Circuit Grid Lines -->
+  <g stroke="#38BDF8" stroke-opacity="0.08" stroke-width="3" fill="none">
+    <circle cx="512" cy="512" r="380" stroke-dasharray="12 16" />
+    <circle cx="512" cy="512" r="440" stroke-opacity="0.04" />
+    <path d="M120 512 H300 L360 452 H420" />
+    <path d="M904 512 H724 L664 572 H604" />
+    <path d="M512 120 V250" />
+    <path d="M512 904 V780" />
+    <!-- Pulse nodes -->
+    <circle cx="360" cy="452" r="6" fill="#F59E0B" fill-opacity="0.4" />
+    <circle cx="664" cy="572" r="6" fill="#10B981" fill-opacity="0.4" />
+  </g>
+
+  <!-- Outer Golden Crest Shield -->
+  <g filter="url(#badgeShadow)">
+    <path d="M512 160 L780 275 C780 550 655 740 512 850 C369 740 244 550 244 275 Z"
+          fill="none" stroke="url(#goldGrad)" stroke-width="26" stroke-linejoin="round" />
+  </g>
+
+  <!-- Glowing Secondary Shield Ring -->
+  <path d="M512 188 L756 292 C756 536 642 708 512 812 C382 708 268 536 268 292 Z"
+        fill="#090D16" fill-opacity="0.82" stroke="#FDE047" stroke-width="4" stroke-opacity="0.4" />
+
+  <!-- Inner Tech Pattern inside Shield -->
+  <g clip-path="url(#shieldClip)">
+    <!-- Tech Scanlines -->
+    <path d="M200 350 L800 350 M200 420 L800 420 M200 490 L800 490 M200 560 L800 560 M200 630 L800 630"
+          stroke="#F59E0B" stroke-opacity="0.05" stroke-width="2" />
+    <!-- Ambient Golden Glow Core -->
+    <radialGradient id="coreGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#F59E0B" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="#F59E0B" stop-opacity="0" />
+    </radialGradient>
+    <circle cx="512" cy="480" r="260" fill="url(#coreGlow)" />
+  </g>
+
+  <!-- Stylized Academic / Tech Mortarboard Crown atop Shield -->
+  <g filter="url(#badgeShadow)">
+    <path d="M512 120 L660 176 L512 232 L364 176 Z" fill="url(#goldGrad)" />
+    <!-- Tassel -->
+    <path d="M400 190 Q370 230 380 280" fill="none" stroke="#FDE68A" stroke-width="6" stroke-linecap="round" />
+    <circle cx="380" cy="285" r="8" fill="#FDE68A" />
+  </g>
+
+  <!-- Bold Central CIT Monogram -->
+  <g filter="url(#neonGoldGlow)">
+    <!-- Letter C -->
+    <path d="M370 390 C340 390 315 415 315 450 V510 C315 545 340 570 370 570 H405 V530 H375 C360 530 352 522 352 505 V455 C352 438 360 430 375 430 H405 V390 Z"
+          fill="url(#goldGrad)" />
+
+    <!-- Letter I -->
+    <path d="M472 390 H512 V570 H472 Z"
+          fill="url(#goldGrad)" />
+
+    <!-- Letter T -->
+    <path d="M545 390 H645 V430 H615 V570 H575 V430 H545 Z"
+          fill="url(#goldGrad)" />
+  </g>
+
+  <!-- Subtitle Ribbon: ATTENDANCE -->
+  <g>
+    <!-- Background Pill -->
+    <rect x="362" y="598" width="200" height="32" rx="16" fill="#0F172A" stroke="#F59E0B" stroke-width="2.5" />
+    <text x="462" y="620"
+          font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+          font-size="14"
+          font-weight="900"
+          letter-spacing="5"
+          text-anchor="middle"
+          fill="#FDE68A">
+      ATTENDANCE
+    </text>
+  </g>
+
+  <!-- Dynamic Emerald Attendance Verification Checkmark -->
+  <g filter="url(#emeraldGlow)">
+    <!-- Background Outline for High Contrast -->
+    <path d="M430 670 L515 755 L750 490"
+          fill="none"
+          stroke="#090D16"
+          stroke-width="56"
+          stroke-linecap="round"
+          stroke-linejoin="round" />
+    <!-- Vibrant Emerald Checkmark -->
+    <path d="M430 670 L515 755 L750 490"
+          fill="none"
+          stroke="url(#emeraldGrad)"
+          stroke-width="40"
+          stroke-linecap="round"
+          stroke-linejoin="round" />
+    <!-- Checkmark Specular Highlight -->
+    <path d="M436 668 L515 747 L742 494"
+          fill="none"
+          stroke="#A7F3D0"
+          stroke-width="12"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          opacity="0.8" />
+  </g>
+
+  <!-- Micro Attendance Signal Indicator Dots (Pulse) -->
+  <circle cx="760" cy="470" r="12" fill="#34D399" filter="url(#neonGoldGlow)" />
+  <circle cx="760" cy="470" r="6" fill="#FFFFFF" />
+
+</svg>

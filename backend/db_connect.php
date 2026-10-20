@@ -15,6 +15,17 @@ $password = DB_PASS;
 $database = DB_NAME;
 $port     = DB_PORT;
 
+if (!headers_sent()) {
+    header("Access-Control-Allow-Origin: *");
+    header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With, Origin, Accept, User-Agent, Cookie");
+    header("Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE");
+}
+
+if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
+
 $conn = @new mysqli($host, $username, $password, $database, $port);
 
 if ($conn->connect_error) {
@@ -48,20 +59,14 @@ try {
         @$conn->query("ALTER TABLE student ADD INDEX idx_student_rfid (rfid_uid)");
     }
 
-    $col_course_hours = @$conn->query("SHOW COLUMNS FROM course LIKE 'required_hours'");
-    if ($col_course_hours && $col_course_hours->num_rows == 0) {
-        @$conn->query("ALTER TABLE course ADD COLUMN required_hours INT DEFAULT 480 AFTER course_name");
-        @$conn->query("UPDATE course SET required_hours = 480 WHERE required_hours IS NULL OR required_hours = 0");
-    }
-
     $course_check = @$conn->query("SELECT COUNT(*) as cnt FROM course");
     if ($course_check) {
         $c_cnt = intval($course_check->fetch_assoc()['cnt'] ?? 0);
         if ($c_cnt < 3) {
-            @$conn->query("INSERT IGNORE INTO course (course_code, course_name, required_hours) VALUES
-                ('BSCS', 'Bachelor of Science in Computer Science', " . DEFAULT_REQUIRED_HOURS . "),
-                ('BSIS', 'Bachelor of Science in Information Systems', " . DEFAULT_REQUIRED_HOURS . "),
-                ('BLIS', 'Bachelor of Library and Information Science', " . DEFAULT_REQUIRED_HOURS . ")");
+            @$conn->query("INSERT IGNORE INTO course (course_code, course_name) VALUES
+                ('BSCS', 'Bachelor of Science in Computer Science'),
+                ('BSIS', 'Bachelor of Science in Information Systems'),
+                ('BLIS', 'Bachelor of Library and Information Science')");
         }
     }
 
