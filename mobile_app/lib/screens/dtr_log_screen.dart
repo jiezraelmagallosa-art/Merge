@@ -158,128 +158,121 @@ class DtrLogScreenState extends State<DtrLogScreen> {
                   ),
                   const Divider(height: 18, thickness: 1),
 
-                  // Morning Shift Section
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  // Event Attendance Section (Login & Logout)
+                  Row(
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Morning Shift:',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
-                            ),
-                          ),
-                          _buildShiftBadge(log['morning_status']),
-                        ],
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        'In: ${log['time_in_morning'] ?? '--:--'}  |  Out: ${log['time_out_morning'] ?? '--:--'}',
-                        style: const TextStyle(
-                          fontSize: 12.5,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      if (log['morning_remarks'] != null && log['morning_remarks'].toString().trim().isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                           decoration: BoxDecoration(
-                            color: (log['morning_status'] == 'Rejected') ? Colors.red.shade50 : Colors.blue.shade50,
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: (log['morning_status'] == 'Rejected') ? Colors.red.shade200 : Colors.blue.shade200),
+                            color: primaryNavy.withValues(alpha: 0.04),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: primaryNavy.withValues(alpha: 0.1)),
                           ),
-                          child: Row(
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(
-                                (log['morning_status'] == 'Rejected') ? Icons.error_outline : Icons.info_outline,
-                                size: 14,
-                                color: (log['morning_status'] == 'Rejected') ? Colors.red.shade700 : Colors.blue.shade700,
-                              ),
-                              const SizedBox(width: 5),
-                              Expanded(
-                                child: Text(
-                                  "Dean Remark: ${log['morning_remarks']}",
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontStyle: FontStyle.italic,
-                                    color: (log['morning_status'] == 'Rejected') ? Colors.red.shade800 : Colors.blue.shade900,
+                              const Row(
+                                children: [
+                                  Icon(Icons.login_rounded, size: 14, color: primaryNavy),
+                                  SizedBox(width: 5),
+                                  Text(
+                                    'Login',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                      color: primaryNavy,
+                                    ),
                                   ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                log['login_time'] ?? log['time_in_morning'] ?? '--:--',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black87,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-
-                  // Afternoon Shift Section
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Afternoon Shift:',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
-                            ),
-                          ),
-                          _buildShiftBadge(log['afternoon_status']),
-                        ],
                       ),
-                      const SizedBox(height: 3),
-                      Text(
-                        'In: ${log['time_in_afternoon'] ?? '--:--'}  |  Out: ${log['time_out_afternoon'] ?? '--:--'}',
-                        style: const TextStyle(
-                          fontSize: 12.5,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      if (log['afternoon_remarks'] != null && log['afternoon_remarks'].toString().trim().isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                           decoration: BoxDecoration(
-                            color: (log['afternoon_status'] == 'Rejected') ? Colors.red.shade50 : Colors.blue.shade50,
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: (log['afternoon_status'] == 'Rejected') ? Colors.red.shade200 : Colors.blue.shade200),
+                            color: primaryNavy.withValues(alpha: 0.04),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: primaryNavy.withValues(alpha: 0.1)),
                           ),
-                          child: Row(
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(
-                                (log['afternoon_status'] == 'Rejected') ? Icons.error_outline : Icons.info_outline,
-                                size: 14,
-                                color: (log['afternoon_status'] == 'Rejected') ? Colors.red.shade700 : Colors.blue.shade700,
-                              ),
-                              const SizedBox(width: 5),
-                              Expanded(
-                                child: Text(
-                                  "Dean Remark: ${log['afternoon_remarks']}",
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontStyle: FontStyle.italic,
-                                    color: (log['afternoon_status'] == 'Rejected') ? Colors.red.shade800 : Colors.blue.shade900,
+                              const Row(
+                                children: [
+                                  Icon(Icons.logout_rounded, size: 14, color: primaryNavy),
+                                  SizedBox(width: 5),
+                                  Text(
+                                    'Logout',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                      color: primaryNavy,
+                                    ),
                                   ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                log['logout_time'] ?? log['time_out_afternoon'] ?? '--:--',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black87,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                      ],
+                      ),
                     ],
                   ),
+                  if (log['remarks'] != null && log['remarks'].toString().trim().isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: (log['status'] == 'Rejected') ? Colors.red.shade50 : Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: (log['status'] == 'Rejected') ? Colors.red.shade200 : Colors.blue.shade200),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            (log['status'] == 'Rejected') ? Icons.error_outline : Icons.info_outline,
+                            size: 14,
+                            color: (log['status'] == 'Rejected') ? Colors.red.shade700 : Colors.blue.shade700,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              "Officer / Dean Remark: ${log['remarks']}",
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontStyle: FontStyle.italic,
+                                color: (log['status'] == 'Rejected') ? Colors.red.shade800 : Colors.blue.shade900,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 10),
                   const Divider(height: 12, thickness: 0.5),
 
@@ -333,7 +326,7 @@ class DtrLogScreenState extends State<DtrLogScreen> {
       bg = Colors.amber.shade50;
       border = Colors.amber.shade300;
       text = Colors.amber.shade900;
-      label = 'Partial Shift';
+      label = 'Partial';
     } else if (status == 'Confirmed') {
       bg = Colors.green.shade50;
       border = Colors.green.shade300;
@@ -352,42 +345,6 @@ class DtrLogScreenState extends State<DtrLogScreen> {
         label,
         style: TextStyle(
           fontSize: 11,
-          fontWeight: FontWeight.bold,
-          color: text,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildShiftBadge(String? shiftStatus) {
-    Color bg = Colors.grey.shade100;
-    Color border = Colors.grey.shade300;
-    Color text = Colors.grey.shade700;
-    String label = shiftStatus ?? 'Pending';
-
-    if (shiftStatus == 'Confirmed') {
-      bg = Colors.green.shade50;
-      border = Colors.green.shade200;
-      text = Colors.green.shade800;
-      label = '✓ Confirmed';
-    } else if (shiftStatus == 'Rejected') {
-      bg = Colors.red.shade50;
-      border = Colors.red.shade200;
-      text = Colors.red.shade800;
-      label = '✕ Rejected';
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: border),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 10,
           fontWeight: FontWeight.bold,
           color: text,
         ),

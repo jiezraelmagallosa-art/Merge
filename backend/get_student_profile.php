@@ -77,7 +77,7 @@ $days_stmt->close();
 // Check if student has attendance today
 $today = date('Y-m-d');
 $today_stmt = $conn->prepare("
-    SELECT attendance_id, time_in_morning, time_out_morning, time_in_afternoon, time_out_afternoon, status, morning_status, afternoon_status
+    SELECT attendance_id, login_time, logout_time, status, remarks
     FROM attendance
     WHERE (student_id = ? OR ojt_id = ?) AND date = ?
     LIMIT 1
@@ -87,7 +87,16 @@ $today_stmt->execute();
 $today_att = $today_stmt->get_result()->fetch_assoc();
 $today_stmt->close();
 
-$has_attended_today = ($today_att !== null && ($today_att['time_in_morning'] || $today_att['time_in_afternoon']));
+$has_attended_today = ($today_att !== null && !empty($today_att['login_time']));
+
+if ($today_att) {
+    $today_att['time_in_morning'] = $today_att['login_time'];
+    $today_att['time_out_morning'] = '--:--';
+    $today_att['time_in_afternoon'] = '--:--';
+    $today_att['time_out_afternoon'] = $today_att['logout_time'];
+    $today_att['morning_status'] = $today_att['status'];
+    $today_att['afternoon_status'] = $today_att['status'];
+}
 
 $profile['total_event_days'] = $total_event_days;
 $profile['has_attended_today'] = $has_attended_today;

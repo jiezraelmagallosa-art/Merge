@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CIT Attendee - Mobile App Icon Showcase</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
   <style>
     :root {
       --bg-dark: #090D16;
@@ -27,7 +30,7 @@
 
     body {
       background-color: var(--bg-dark);
-      background-image: 
+      background-image:
         radial-gradient(at 0% 0%, rgba(245, 158, 11, 0.15) 0px, transparent 50%),
         radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.12) 0px, transparent 50%),
         radial-gradient(at 50% 50%, rgba(15, 23, 42, 0.85) 0px, transparent 100%);
@@ -119,7 +122,8 @@
       transition: all 0.2s ease;
     }
 
-    .btn-toggle.active, .btn-toggle:hover {
+    .btn-toggle.active,
+    .btn-toggle:hover {
       background: rgba(245, 158, 11, 0.2);
       border-color: var(--primary-gold);
       color: var(--primary-yellow);
@@ -197,9 +201,17 @@
     }
 
     /* Device shapes */
-    body.shape-circle .preview-box img { border-radius: 50% !important; }
-    body.shape-squircle .preview-box img { border-radius: 44px !important; }
-    body.shape-square .preview-box img { border-radius: 14px !important; }
+    body.shape-circle .preview-box img {
+      border-radius: 50% !important;
+    }
+
+    body.shape-squircle .preview-box img {
+      border-radius: 44px !important;
+    }
+
+    body.shape-square .preview-box img {
+      border-radius: 14px !important;
+    }
 
     .icon-title {
       font-size: 18px;
@@ -362,13 +374,16 @@
     }
   </style>
 </head>
+
 <body class="shape-squircle">
   <div class="container">
     <header>
       <div class="badge">Official Brand Asset</div>
       <h1>CIT Attendee &mdash; Mobile App Icon Design</h1>
       <p class="subtitle">
-        Custom high-fidelity mobile app icon designs dedicated to the <strong>CIT Attendee</strong> mobile application. Features the prominent <strong>CIT</strong> monogram, the <strong>ATTENDEE</strong> credential banner, and emerald attendance verification.
+        Custom high-fidelity mobile app icon designs dedicated to the <strong>CIT Attendee</strong> mobile application.
+        Features the prominent <strong>CIT</strong> monogram, the <strong>ATTENDEE</strong> credential banner, and
+        emerald attendance verification.
       </p>
     </header>
 
@@ -382,7 +397,8 @@
       </div>
       <div class="control-group">
         <label>Mockup App:</label>
-        <select id="activeDockSelect" onchange="updateMockupIcon(this.value)" style="background:#0F172A; color:#F8FAFC; border:1px solid #334155; padding:6px 12px; border-radius:8px; font-size:12px;">
+        <select id="activeDockSelect" onchange="updateMockupIcon(this.value)"
+          style="background:#0F172A; color:#F8FAFC; border:1px solid #334155; padding:6px 12px; border-radius:8px; font-size:12px;">
           <option value="attendee_official" selected>Attendee &mdash; Official CIT Medallion</option>
           <option value="attendee_shield">Attendee &mdash; Collegiate Crest</option>
           <option value="biotech_3d">CIT 3D Biometric ID</option>
@@ -401,7 +417,9 @@
         </div>
         <div class="icon-title">Attendee &mdash; Official CIT Medallion</div>
         <div class="icon-desc">
-          Pure, prestigious presentation of the authentic <strong>College of Information Technology &mdash; Southern Baptist College</strong> circular seal nested inside a centered 3D sculpted gold bezel, perfectly balanced with all badges and checkmarks removed.
+          Pure, prestigious presentation of the authentic <strong>College of Information Technology &mdash; Southern
+            Baptist College</strong> circular seal nested inside a centered 3D sculpted gold bezel, perfectly balanced
+          with all badges and checkmarks removed.
         </div>
         <div class="meta-tags">
           <span>Official CIT Seal</span>
@@ -438,7 +456,8 @@
         </div>
         <div class="icon-title">CIT &mdash; 3D Biometric ID</div>
         <div class="icon-desc">
-          Photorealistic 3D glassmorphic badge with golden fingerprint core, embossed metallic CIT lettering, and luminous neon emerald tick mark.
+          Photorealistic 3D glassmorphic badge with golden fingerprint core, embossed metallic CIT lettering, and
+          luminous neon emerald tick mark.
         </div>
         <div class="meta-tags">
           <span>3D Glassmorphism</span>
@@ -456,7 +475,8 @@
         </div>
         <div class="icon-title">CIT &mdash; Academic Timekeeper</div>
         <div class="icon-desc">
-          Gold graduation cap merged with digital attendance clock face and verification tick mark for student record and shift tracking.
+          Gold graduation cap merged with digital attendance clock face and verification tick mark for student record
+          and shift tracking.
         </div>
         <div class="meta-tags">
           <span>Digital Clock</span>
@@ -482,19 +502,22 @@
             <div class="dock-app-name" id="mockupLabel" style="color:#FBBF24; font-weight:800;">Attendee</div>
           </div>
           <div class="dock-app">
-            <div class="dock-app-icon" style="background: linear-gradient(135deg, #2563EB, #1D4ED8); color:white; font-size:20px; font-weight:bold;">
+            <div class="dock-app-icon"
+              style="background: linear-gradient(135deg, #2563EB, #1D4ED8); color:white; font-size:20px; font-weight:bold;">
               C
             </div>
             <div class="dock-app-name">Camera</div>
           </div>
           <div class="dock-app">
-            <div class="dock-app-icon" style="background: linear-gradient(135deg, #10B981, #059669); color:white; font-size:20px; font-weight:bold;">
+            <div class="dock-app-icon"
+              style="background: linear-gradient(135deg, #10B981, #059669); color:white; font-size:20px; font-weight:bold;">
               P
             </div>
             <div class="dock-app-name">Portal</div>
           </div>
           <div class="dock-app">
-            <div class="dock-app-icon" style="background: linear-gradient(135deg, #64748B, #334155); color:white; font-size:20px; font-weight:bold;">
+            <div class="dock-app-icon"
+              style="background: linear-gradient(135deg, #64748B, #334155); color:white; font-size:20px; font-weight:bold;">
               S
             </div>
             <div class="dock-app-name">Settings</div>
@@ -507,7 +530,8 @@
     <div class="guide-section">
       <h3>🚀 How to apply the "Attendee" icon to your Flutter Mobile App</h3>
       <p style="color:#94A3B8; font-size:14px; margin-bottom:12px;">
-        To configure <strong>Attendee</strong> as your official launcher icon, add this to your <code>mobile_app/pubspec.yaml</code>:
+        To configure <strong>Attendee</strong> as your official launcher icon, add this to your
+        <code>mobile_app/pubspec.yaml</code>:
       </p>
       <pre><code># 1. In mobile_app/pubspec.yaml under dev_dependencies:
 dev_dependencies:
@@ -547,4 +571,5 @@ dart run flutter_launcher_icons</code></pre>
     }
   </script>
 </body>
+
 </html>

@@ -104,10 +104,8 @@ $tables = [
         attendance_id INT PRIMARY KEY AUTO_INCREMENT,
         student_id INT NOT NULL,
         date DATE NOT NULL,
-        time_in_morning TIME NULL,
-        time_out_morning TIME NULL,
-        time_in_afternoon TIME NULL,
-        time_out_afternoon TIME NULL,
+        login_time TIME NULL,
+        logout_time TIME NULL,
         status VARCHAR(50) DEFAULT 'Pending',
         remarks TEXT NULL,
         ojt_id INT NULL DEFAULT NULL,
@@ -118,7 +116,7 @@ $tables = [
     "photo" => "CREATE TABLE IF NOT EXISTS photo (
         photo_id INT PRIMARY KEY AUTO_INCREMENT,
         attendance_id INT NOT NULL,
-        shift_type ENUM('Morning_In', 'Morning_Out', 'Afternoon_In', 'Afternoon_Out') NOT NULL,
+        shift_type VARCHAR(50) NOT NULL DEFAULT 'Login',
         image_path VARCHAR(255) NOT NULL,
         captured_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (attendance_id) REFERENCES attendance(attendance_id) ON DELETE CASCADE

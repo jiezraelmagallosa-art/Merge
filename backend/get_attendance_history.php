@@ -37,16 +37,10 @@ if ($param_id <= 0) {
 $query = "SELECT DISTINCT
             a.attendance_id,
             a.date,
-            a.time_in_morning,
-            a.time_out_morning,
-            a.time_in_afternoon,
-            a.time_out_afternoon,
+            a.login_time,
+            a.logout_time,
             a.status,
-            a.remarks,
-            a.morning_status,
-            a.morning_remarks,
-            a.afternoon_status,
-            a.afternoon_remarks
+            a.remarks
           FROM attendance a
           WHERE a.student_id = ? OR a.ojt_id = ?
           ORDER BY a.date DESC, a.attendance_id DESC";
@@ -59,82 +53,46 @@ $result = $stmt->get_result();
 $history = [];
 
 while ($row = $result->fetch_assoc()) {
-    $raw_m_status = $row['morning_status'] ?? 'Pending';
-    $raw_a_status = $row['afternoon_status'] ?? 'Pending';
-    $raw_overall  = $row['status'] ?? 'Pending';
+    $raw_overall = $row['status'] ?? 'Pending';
+    $login_val = $row['login_time'];
+    $logout_val = $row['logout_time'];
 
-    // Calculate credited minutes for this date excluding rejected shifts
-    $m_mins = 0;
-    if (($raw_overall === null || $raw_overall !== 'Rejected') && 
-        ($raw_m_status === null || $raw_m_status !== 'Rejected') && 
-        !empty($row['time_in_morning']) && !empty($row['time_out_morning'])) {
-        $m_start = strtotime($row['time_in_morning']);
-        $m_end = strtotime($row['time_out_morning']);
-        if ($m_end > $m_start) {
-            $m_mins = round(($m_end - $m_start) / 60);
-        }
-    }
-
-    $a_mins = 0;
-    if (($raw_overall === null || $raw_overall !== 'Rejected') && 
-        ($raw_a_status === null || $raw_a_status !== 'Rejected') && 
-        !empty($row['time_in_afternoon']) && !empty($row['time_out_afternoon'])) {
-        $a_start = strtotime($row['time_in_afternoon']);
-        $a_end = strtotime($row['time_out_afternoon']);
-        if ($a_end > $a_start) {
-            $a_mins = round(($a_end - $a_start) / 60);
-        }
-    }
-
-    $day_total_mins = $m_mins + $a_mins;
-    $day_hours = floor($day_total_mins / 60);
-    $day_rem_mins = $day_total_mins % 60;
-
-    $m_rem = trim(preg_replace('/\s*\/\s*in car/i', '', $row['morning_remarks'] ?? ''));
-    $has_both_m = !empty($row['time_in_morning']) && !empty($row['time_out_morning']);
-    if ($has_both_m && $raw_m_status === 'Rejected') {
-        if (strcasecmp($m_rem, 'Morning Time-Out taken off-site') === 0 || strcasecmp($m_rem, 'Morning Time-In taken off-site') === 0) {
-            $m_rem = 'Morning Shift taken off-site';
-        }
-    }
-
-    $a_rem = trim(preg_replace('/\s*\/\s*in car/i', '', $row['afternoon_remarks'] ?? ''));
-    $has_both_a = !empty($row['time_in_afternoon']) && !empty($row['time_out_afternoon']);
-    if ($has_both_a && $raw_a_status === 'Rejected') {
-        if (strcasecmp($a_rem, 'Afternoon Time-Out taken off-site') === 0 || strcasecmp($a_rem, 'Afternoon Time-In taken off-site') === 0 || strcasecmp($a_rem, 'Afternoon photo invalid / off-site') === 0) {
-            $a_rem = 'Afternoon Shift taken off-site';
-        }
-    }
+    $login_formatted = !empty($login_val) ? date("h:i A", strtotime($login_val)) : '--:--';
+    $logout_formatted = !empty($logout_val) ? date("h:i A", strtotime($logout_val)) : '--:--';
 
     $status = "Present";
-    if (empty($row['time_in_morning']) && empty($row['time_in_afternoon'])) {
+    if (empty($login_val)) {
         $status = "Absent";
-    } elseif ($raw_overall === 'Rejected' || ($raw_m_status === 'Rejected' && $raw_a_status === 'Rejected')) {
+    } elseif ($raw_overall === 'Rejected') {
         $status = "Rejected";
-    } elseif ($raw_overall === 'Confirmed' || ($raw_m_status === 'Confirmed' && $raw_a_status === 'Confirmed')) {
+    } elseif ($raw_overall === 'Confirmed') {
         $status = "Confirmed";
-    } elseif ($raw_m_status === 'Rejected' || $raw_a_status === 'Rejected') {
-        $status = "Partial";
     }
 
     $history[] = [
         "id" => $row['attendance_id'],
+        "attendance_id" => $row['attendance_id'],
         "date" => date("M d, Y", strtotime($row['date'])),
         "raw_date" => $row['date'],
-        "time_in_morning" => !empty($row['time_in_morning']) ? date("h:i A", strtotime($row['time_in_morning'])) : '--:--',
-        "time_out_morning" => !empty($row['time_out_morning']) ? date("h:i A", strtotime($row['time_out_morning'])) : '--:--',
-        "time_in_afternoon" => !empty($row['time_in_afternoon']) ? date("h:i A", strtotime($row['time_in_afternoon'])) : '--:--',
-        "time_out_afternoon" => !empty($row['time_out_afternoon']) ? date("h:i A", strtotime($row['time_out_afternoon'])) : '--:--',
+        "login_time" => $login_formatted,
+        "logout_time" => $logout_formatted,
+        // Compatibility aliases
+        "time_in" => $login_formatted,
+        "time_out" => $logout_formatted,
+        "time_in_morning" => $login_formatted,
+        "time_out_morning" => '--:--',
+        "time_in_afternoon" => '--:--',
+        "time_out_afternoon" => $logout_formatted,
         "status" => $status,
-        "remarks" => trim(preg_replace('/\s*\/\s*in car/i', '', $row['remarks'] ?? '')),
-        "morning_status" => $raw_m_status,
-        "morning_remarks" => $m_rem,
-        "afternoon_status" => $raw_a_status,
-        "afternoon_remarks" => $a_rem,
-        "credited_minutes" => $day_total_mins,
-        "credited_hours" => $day_hours,
-        "credited_remaining_minutes" => $day_rem_mins,
-        "formatted_credited_time" => "{$day_hours} hrs {$day_rem_mins} mins"
+        "remarks" => trim($row['remarks'] ?? ''),
+        "morning_status" => $raw_overall,
+        "morning_remarks" => trim($row['remarks'] ?? ''),
+        "afternoon_status" => $raw_overall,
+        "afternoon_remarks" => trim($row['remarks'] ?? ''),
+        "credited_minutes" => 0,
+        "credited_hours" => 0,
+        "credited_remaining_minutes" => 0,
+        "formatted_credited_time" => "Event Attendance"
     ];
 }
 

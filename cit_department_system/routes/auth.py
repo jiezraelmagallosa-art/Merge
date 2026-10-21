@@ -166,7 +166,7 @@ def verify_rfid():
 
     student = None
     for candidate in candidates:
-        cursor.execute("SELECT * FROM students WHERE student_id = %s", (candidate,))
+        cursor.execute("SELECT * FROM students WHERE student_id = %s OR rfid_uid = %s", (candidate, candidate))
         student = cursor.fetchone()
         if student:
             break

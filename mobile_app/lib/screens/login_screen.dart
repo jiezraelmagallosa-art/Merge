@@ -128,17 +128,17 @@ class _LoginScreenState extends State<LoginScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Enter your Cloud Domain or Local Server IP (e.g., https://your-site.com or 192.168.1.7):',
+              'Enter your Local Server Host (e.g., localhost, 10.0.2.2, or 192.168.1.7):',
               style: TextStyle(fontSize: 13, color: AppColors.textMuted),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: ipController,
               decoration: const InputDecoration(
-                labelText: 'Server Host / Cloud URL',
-                hintText: 'https://mysite.com or 192.168.1.7',
+                labelText: 'Server Host / Local IP',
+                hintText: 'localhost or 192.168.1.7',
                 border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.cloud_sync_rounded),
+                prefixIcon: Icon(Icons.dns_rounded),
               ),
               keyboardType: TextInputType.text,
             ),
@@ -255,7 +255,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 4),
                     const Text(
-                      'Student Records Portal',
+                      'CIT Attendee Portal',
                       style: TextStyle(color: Colors.white70, fontSize: 14),
                     ),
                     const SizedBox(height: 32),

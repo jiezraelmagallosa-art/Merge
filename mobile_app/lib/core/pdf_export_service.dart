@@ -57,7 +57,7 @@ class PdfExportService {
             pw.SizedBox(height: 20),
 
             pw.TableHelper.fromTextArray(
-              headers: ['Date', 'AM In', 'AM Out', 'PM In', 'PM Out', 'Status'],
+              headers: ['Date', 'Login', 'Logout', 'Status'],
               headerStyle: pw.TextStyle(
                 fontWeight: pw.FontWeight.bold,
                 color: PdfColors.white,
@@ -74,10 +74,8 @@ class PdfExportService {
               data: logs.map((log) {
                 return [
                   log['date'] ?? '',
-                  log['time_in_morning'] ?? '--:--',
-                  log['time_out_morning'] ?? '--:--',
-                  log['time_in_afternoon'] ?? '--:--',
-                  log['time_out_afternoon'] ?? '--:--',
+                  log['login_time'] ?? log['time_in'] ?? log['time_in_morning'] ?? '--:--',
+                  log['logout_time'] ?? log['time_out'] ?? log['time_out_afternoon'] ?? '--:--',
                   log['status'] ?? 'Present',
                 ];
               }).toList(),

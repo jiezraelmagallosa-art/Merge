@@ -36,12 +36,11 @@ try {
     $current_date = date('Y-m-d');
     $current_time = date('H:i:s');
 
-    // Validate against the scheduled event for today
-    $current_time_formatted = date('H:i:s', strtotime($current_time));
-    $is_login = in_array($action, ['time_in_morning', 'time_in_afternoon']);
-    $is_logout = in_array($action, ['time_out_morning', 'time_out_afternoon']);
-    $is_morning = in_array($action, ['time_in_morning', 'time_out_morning']);
-    $is_afternoon = in_array($action, ['time_in_afternoon', 'time_out_afternoon']);
+    // Normalize action
+    $action_lower = strtolower($action);
+    $is_logout = (strpos($action_lower, 'out') !== false || strpos($action_lower, 'logout') !== false);
+    $is_login = !$is_logout;
+    $target_col = $is_login ? 'login_time' : 'logout_time';
 
     $stmt_ev = $conn->prepare("
         SELECT event_id, event_name, event_date, login_time, logout_time, login_cutoff_time, logout_cutoff_time, grace_period
@@ -68,26 +67,7 @@ try {
         exit();
     }
 
-    // Select the appropriate event if multiple exist for today
     $active_event = $events_today[0];
-    if (count($events_today) > 1) {
-        if ($is_morning) {
-            foreach ($events_today as $ev) {
-                if (!empty($ev['login_time']) && $ev['login_time'] < '12:30:00') {
-                    $active_event = $ev;
-                    break;
-                }
-            }
-        } elseif ($is_afternoon) {
-            foreach ($events_today as $ev) {
-                if (!empty($ev['login_time']) && $ev['login_time'] >= '12:00:00') {
-                    $active_event = $ev;
-                    break;
-                }
-            }
-        }
-    }
-
     $event_title = $active_event['event_name'] ?? 'Department Event';
     $ev_grace = intval($active_event['grace_period'] ?? 0);
 
@@ -101,154 +81,91 @@ try {
         ? $active_event['logout_cutoff_time']
         : (!empty($ev_logout_time) && $ev_grace > 0 ? date('H:i:s', strtotime($ev_logout_time . " +$ev_grace minutes")) : $ev_logout_time);
 
+    $current_time_formatted = date('H:i:s', strtotime($current_time));
+
     if ($is_login) {
         if (empty($ev_login_time)) {
-            echo json_encode([
-                "status"  => "error",
-                "message" => "Event '{$event_title}' does not have a log-in schedule configured."
-            ]);
+            echo json_encode(["status" => "error", "message" => "Event '{$event_title}' does not have a log-in schedule configured."]);
             exit();
         }
         if ($current_time_formatted < $ev_login_time) {
-            echo json_encode([
-                "status"  => "error",
-                "message" => "Log-in has not started yet. Log-in starts at " . date("g:i A", strtotime($ev_login_time)) . " for event '{$event_title}'."
-            ]);
+            echo json_encode(["status" => "error", "message" => "Log-in has not started yet. Starts at " . date("g:i A", strtotime($ev_login_time)) . "."]);
             exit();
         }
         if (!empty($ev_login_cutoff) && $current_time_formatted > $ev_login_cutoff) {
-            echo json_encode([
-                "status"  => "error",
-                "message" => "Log-in cutoff reached (" . date("g:i A", strtotime($ev_login_cutoff)) . "). Log-in is closed for event '{$event_title}'."
-            ]);
+            echo json_encode(["status" => "error", "message" => "Log-in cutoff reached (" . date("g:i A", strtotime($ev_login_cutoff)) . "). Log-in is closed."]);
             exit();
         }
-    } elseif ($is_logout) {
+    } else {
         if (empty($ev_logout_time)) {
-            echo json_encode([
-                "status"  => "error",
-                "message" => "Event '{$event_title}' does not have a log-out schedule configured."
-            ]);
+            echo json_encode(["status" => "error", "message" => "Event '{$event_title}' does not have a log-out schedule configured."]);
             exit();
         }
         if ($current_time_formatted < $ev_logout_time) {
-            echo json_encode([
-                "status"  => "error",
-                "message" => "Log-out has not started yet. Log-out starts at " . date("g:i A", strtotime($ev_logout_time)) . " for event '{$event_title}'."
-            ]);
+            echo json_encode(["status" => "error", "message" => "Log-out has not started yet. Starts at " . date("g:i A", strtotime($ev_logout_time)) . "."]);
             exit();
         }
         if (!empty($ev_logout_cutoff) && $current_time_formatted > $ev_logout_cutoff) {
-            echo json_encode([
-                "status"  => "error",
-                "message" => "Log-out cutoff reached (" . date("g:i A", strtotime($ev_logout_cutoff)) . "). Log-out is closed for event '{$event_title}'."
-            ]);
+            echo json_encode(["status" => "error", "message" => "Log-out cutoff reached (" . date("g:i A", strtotime($ev_logout_cutoff)) . "). Log-out is closed."]);
             exit();
         }
     }
 
-
-    $checkStmt = $conn->prepare("SELECT * FROM attendance WHERE ojt_id = ? AND date = ?");
-    $checkStmt->bind_param("is", $ojt_id, $current_date);
+    $checkStmt = $conn->prepare("SELECT attendance_id, login_time, logout_time FROM attendance WHERE (ojt_id = ? OR student_id = ?) AND date = ?");
+    $checkStmt->bind_param("iis", $ojt_id, $ojt_id, $current_date);
     $checkStmt->execute();
     $result = $checkStmt->get_result();
     $existingRecord = $result->fetch_assoc();
+    $checkStmt->close();
 
     require_once 'motivational_messages.php';
-    $motivational_msg = getRandomMotivationalMessage($action);
+    $motivational_msg = getRandomMotivationalMessage($is_login ? 'login' : 'logout');
 
-    if ($action === 'time_in_morning') {
-        if ($existingRecord && !empty($existingRecord['time_in_morning'])) {
-            echo json_encode(["status" => "error", "message" => "Already recorded Time-In for Morning today!"]);
+    if ($is_login) {
+        if ($existingRecord && !empty($existingRecord['login_time'])) {
+            echo json_encode(["status" => "error", "message" => "Already recorded Login today!"]);
             exit();
         }
 
         if ($existingRecord) {
-            $stmt = $conn->prepare("UPDATE attendance SET time_in_morning = ?, status = 'Pending', remarks = NULL WHERE attendance_id = ?");
+            $stmt = $conn->prepare("UPDATE attendance SET login_time = ?, status = 'Pending', remarks = NULL WHERE attendance_id = ?");
             $stmt->bind_param("si", $current_time, $existingRecord['attendance_id']);
         } else {
-            $stmt = $conn->prepare("INSERT INTO attendance (date, time_in_morning, ojt_id, status) VALUES (?, ?, ?, 'Pending')");
-            $stmt->bind_param("ssi", $current_date, $current_time, $ojt_id);
+            $stmt = $conn->prepare("INSERT INTO attendance (date, login_time, ojt_id, student_id, status) VALUES (?, ?, ?, ?, 'Pending')");
+            $stmt->bind_param("ssii", $current_date, $current_time, $ojt_id, $ojt_id);
         }
         $stmt->execute();
+        $stmt->close();
         echo json_encode([
             "status" => "success",
             "message" => $motivational_msg,
             "motivational_message" => $motivational_msg,
             "recorded_time" => date('g:i A')
         ]);
-
-    } elseif ($action === 'time_out_morning') {
-        if (!$existingRecord || empty($existingRecord['time_in_morning'])) {
-            echo json_encode(["status" => "error", "message" => "Cannot Time-Out. No Morning Time-In record found."]);
-            exit();
-        }
-        if (!empty($existingRecord['time_out_morning'])) {
-            echo json_encode(["status" => "error", "message" => "Already recorded Morning Time-Out today! Only 1 Time-Out allowed per shift."]);
-            exit();
-        }
-        if (strtotime($current_time) <= strtotime($existingRecord['time_in_morning'])) {
-            echo json_encode(["status" => "error", "message" => "Morning Time-Out must be after Morning Time-In."]);
-            exit();
-        }
-
-        $stmt = $conn->prepare("UPDATE attendance SET time_out_morning = ?, status = 'Pending', remarks = NULL WHERE attendance_id = ?");
-        $stmt->bind_param("si", $current_time, $existingRecord['attendance_id']);
-        $stmt->execute();
-        echo json_encode([
-            "status" => "success",
-            "message" => $motivational_msg,
-            "motivational_message" => $motivational_msg,
-            "recorded_time" => date('g:i A')
-        ]);
-
-    } elseif ($action === 'time_in_afternoon') {
-        if ($existingRecord && !empty($existingRecord['time_in_afternoon'])) {
-            echo json_encode(["status" => "error", "message" => "Already recorded Time-In for Afternoon today! Only 1 Time-In allowed per shift."]);
-            exit();
-        }
-
-        if ($existingRecord) {
-            $stmt = $conn->prepare("UPDATE attendance SET time_in_afternoon = ?, status = 'Pending', remarks = NULL WHERE attendance_id = ?");
-            $stmt->bind_param("si", $current_time, $existingRecord['attendance_id']);
-        } else {
-            $stmt = $conn->prepare("INSERT INTO attendance (date, time_in_afternoon, ojt_id, status) VALUES (?, ?, ?, 'Pending')");
-            $stmt->bind_param("ssi", $current_date, $current_time, $ojt_id);
-        }
-        $stmt->execute();
-        echo json_encode([
-            "status" => "success",
-            "message" => $motivational_msg,
-            "motivational_message" => $motivational_msg,
-            "recorded_time" => date('g:i A')
-        ]);
-
-    } elseif ($action === 'time_out_afternoon') {
-        if (!$existingRecord || empty($existingRecord['time_in_afternoon'])) {
-            echo json_encode(["status" => "error", "message" => "Cannot Time-Out. No Afternoon Time-In record found."]);
-            exit();
-        }
-        if (!empty($existingRecord['time_out_afternoon'])) {
-            echo json_encode(["status" => "error", "message" => "Already recorded Afternoon Time-Out today! Only 1 Time-Out allowed per shift."]);
-            exit();
-        }
-        if (strtotime($current_time) <= strtotime($existingRecord['time_in_afternoon'])) {
-            echo json_encode(["status" => "error", "message" => "Afternoon Time-Out must be after Afternoon Time-In."]);
-            exit();
-        }
-
-        $stmt = $conn->prepare("UPDATE attendance SET time_out_afternoon = ?, status = 'Pending', remarks = NULL WHERE attendance_id = ?");
-        $stmt->bind_param("si", $current_time, $existingRecord['attendance_id']);
-        $stmt->execute();
-        echo json_encode([
-            "status" => "success",
-            "message" => $motivational_msg,
-            "motivational_message" => $motivational_msg,
-            "recorded_time" => date('g:i A')
-        ]);
-
     } else {
-        echo json_encode(["status" => "error", "message" => "Invalid action requested."]);
+        if (!$existingRecord || empty($existingRecord['login_time'])) {
+            echo json_encode(["status" => "error", "message" => "Cannot Logout. No Login record found for today."]);
+            exit();
+        }
+        if (!empty($existingRecord['logout_time'])) {
+            echo json_encode(["status" => "error", "message" => "Already recorded Logout today!"]);
+            exit();
+        }
+        if (strtotime($current_time) <= strtotime($existingRecord['login_time'])) {
+            echo json_encode(["status" => "error", "message" => "Logout must be after Login."]);
+            exit();
+        }
+
+        $stmt = $conn->prepare("UPDATE attendance SET logout_time = ?, status = 'Pending', remarks = NULL WHERE attendance_id = ?");
+        $stmt->bind_param("si", $current_time, $existingRecord['attendance_id']);
+        $stmt->execute();
+        $stmt->close();
+        echo json_encode([
+            "status" => "success",
+            "message" => $motivational_msg,
+            "motivational_message" => $motivational_msg,
+            "recorded_time" => date('g:i A')
+        ]);
     }
 
 

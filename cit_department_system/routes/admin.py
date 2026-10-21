@@ -137,34 +137,68 @@ def add_student():
         course = request.form["course"].strip().upper()
         year_level = request.form["year_level"].strip()
 
+        # Extract core surname without middle initial (e.g. "P. MAGALLOSA" -> "MAGALLOSA")
+        bare_lastname = re.sub(r'^(?:[A-Za-z]\.?\s+)+', '', lastname).strip() or lastname
+        like_lastname = f"%{bare_lastname}%"
+
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        # 1. Check duplicate in students table
-        where_conds = ["(firstname=%s AND lastname=%s AND course=%s AND year_level=%s)"]
-        params = [firstname, lastname, course, year_level]
+        # 1. Check duplicate in students table by ID, RFID, or Name
+        where_conds = [
+            """(
+                LOWER(TRIM(firstname)) = LOWER(TRIM(%s)) 
+                AND (
+                    LOWER(TRIM(lastname)) = LOWER(TRIM(%s)) 
+                    OR LOWER(TRIM(lastname)) = LOWER(TRIM(%s))
+                    OR LOWER(TRIM(lastname)) LIKE LOWER(%s)
+                )
+            )"""
+        ]
+        params = [firstname, lastname, bare_lastname, like_lastname]
         if student_id:
-            where_conds.append("student_id=%s")
-            params.append(student_id)
+            where_conds.append("(student_id = %s OR rfid_uid = %s)")
+            params.extend([student_id, student_id])
 
-        query = f"SELECT id, student_id FROM students WHERE {' OR '.join(where_conds)} LIMIT 1"
+        query = f"SELECT id, student_id, rfid_uid FROM students WHERE {' OR '.join(where_conds)} LIMIT 1"
         cursor.execute(query, tuple(params))
-        if cursor.fetchone():
+        existing_cit = cursor.fetchone()
+        if existing_cit:
             conn.close()
-            flash("A student with this ID or Name, Course, and Year Level already exists.", "danger")
+            flash("A student with this ID, RFID, or Name already exists.", "danger")
             return redirect(request.referrer or "/students")
 
         # 2. Check if already registered in mobile app `student` table to auto-link RFID and student_number
         rfid_uid = None
-        if not student_id:
+        s_match = None
+        if student_id:
             cursor.execute(
-                "SELECT student_number, rfid_uid FROM student WHERE LOWER(full_name) LIKE %s LIMIT 1",
-                (f"%{firstname.lower()}%{lastname.lower()}%",)
+                "SELECT student_id, student_number, rfid_uid FROM student WHERE student_number = %s OR id_no = %s OR rfid_uid = %s LIMIT 1",
+                (student_id, student_id, student_id)
             )
             s_match = cursor.fetchone()
-            if s_match:
-                student_id = s_match.get("student_number")
-                rfid_uid = s_match.get("rfid_uid")
+
+        if not s_match:
+            cursor.execute(
+                "SELECT student_id, student_number, rfid_uid FROM student WHERE LOWER(full_name) LIKE %s AND LOWER(full_name) LIKE %s LIMIT 1",
+                (f"%{firstname.lower()}%", f"%{bare_lastname.lower()}%")
+            )
+            s_match = cursor.fetchone()
+
+        if s_match:
+            m_student_number = s_match.get("student_number")
+            m_rfid = s_match.get("rfid_uid")
+            if not student_id and m_student_number:
+                student_id = m_student_number
+            if m_rfid:
+                rfid_uid = m_rfid
+            elif student_id and student_id != m_student_number:
+                rfid_uid = student_id
+                m_cur = conn.cursor()
+                m_cur.execute(
+                    "UPDATE student SET rfid_uid = %s WHERE student_id = %s",
+                    (rfid_uid, s_match["student_id"])
+                )
 
         cursor = conn.cursor()
         cursor.execute(
@@ -353,11 +387,19 @@ def map_rfid(id):
                 "UPDATE transactions SET student_id=%s WHERE student_id=%s",
                 (rfid_value, source_key),
             )
-        if current_key != rfid_value:
-            cursor.execute(
-                "UPDATE students SET student_id=%s WHERE id=%s",
-                (rfid_value, id),
-            )
+        cursor.execute(
+            "UPDATE students SET student_id=%s, rfid_uid=%s WHERE id=%s",
+            (rfid_value, rfid_value, id),
+        )
+        # Also sync to mobile student table
+        cursor.execute(
+            """
+            UPDATE student 
+            SET rfid_uid=%s 
+            WHERE student_number=%s OR student_number=%s OR id_no=%s OR id_no=%s
+            """,
+            (rfid_value, rfid_value, current_key, rfid_value, current_key),
+        )
         conn.commit()
         conn.close()
         return redirect("/students")

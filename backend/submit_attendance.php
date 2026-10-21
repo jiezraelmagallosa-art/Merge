@@ -42,34 +42,16 @@ try {
     $resolved_ojt_id = $raw_ojt_id;
     $active_site_id = 1;
 
-    $field_map = [
-        'time_in_morning' => 'time_in_morning',
-        'Morning_In' => 'time_in_morning',
-        'morning_in' => 'time_in_morning',
-        'time_out_morning' => 'time_out_morning',
-        'Morning_Out' => 'time_out_morning',
-        'morning_out' => 'time_out_morning',
-        'time_in_afternoon' => 'time_in_afternoon',
-        'Afternoon_In' => 'time_in_afternoon',
-        'afternoon_in' => 'time_in_afternoon',
-        'time_out_afternoon' => 'time_out_afternoon',
-        'Afternoon_Out' => 'time_out_afternoon',
-        'afternoon_out' => 'time_out_afternoon',
-    ];
+    // Normalize action: Login or Logout (no morning or afternoon shifts)
+    $raw_lower = strtolower($raw_shift);
+    $is_logout = (strpos($raw_lower, 'out') !== false || strpos($raw_lower, 'logout') !== false);
+    $is_login = !$is_logout;
 
-    if (!isset($field_map[$raw_shift])) {
-        echo json_encode(["status" => "error", "message" => "Invalid shift type requested: " . $raw_shift]);
-        exit();
-    }
-
-    $column_to_update = $field_map[$raw_shift];
+    $column_to_update = $is_login ? 'login_time' : 'logout_time';
+    $action_label = $is_login ? 'Login' : 'Logout';
 
     // Validate against the scheduled event for today
     $time_formatted = date('H:i:s', strtotime($current_time));
-    $is_login = in_array($column_to_update, ['time_in_morning', 'time_in_afternoon']);
-    $is_logout = in_array($column_to_update, ['time_out_morning', 'time_out_afternoon']);
-    $is_morning = in_array($column_to_update, ['time_in_morning', 'time_out_morning']);
-    $is_afternoon = in_array($column_to_update, ['time_in_afternoon', 'time_out_afternoon']);
 
     $stmt_ev = $conn->prepare("
         SELECT event_id, event_name, event_date, login_time, logout_time, login_cutoff_time, logout_cutoff_time, grace_period
@@ -97,26 +79,8 @@ try {
         exit();
     }
 
-    // Select the appropriate event if multiple exist for today
+    // Active event for today
     $active_event = $events_today[0];
-    if (count($events_today) > 1) {
-        if ($is_morning) {
-            foreach ($events_today as $ev) {
-                if (!empty($ev['login_time']) && $ev['login_time'] < '12:30:00') {
-                    $active_event = $ev;
-                    break;
-                }
-            }
-        } elseif ($is_afternoon) {
-            foreach ($events_today as $ev) {
-                if (!empty($ev['login_time']) && $ev['login_time'] >= '12:00:00') {
-                    $active_event = $ev;
-                    break;
-                }
-            }
-        }
-    }
-
     $event_title = $active_event['event_name'] ?? 'Department Event';
     $ev_grace = intval($active_event['grace_period'] ?? 0);
 
@@ -182,10 +146,9 @@ try {
         }
     }
 
-
-    // Fetch existing attendance record for today to enforce 1 time in/out per shift rule
-    $check_stmt = $conn->prepare("SELECT attendance_id, time_in_morning, time_out_morning, time_in_afternoon, time_out_afternoon FROM attendance WHERE ojt_id = ? AND date = ?");
-    $check_stmt->bind_param("is", $resolved_ojt_id, $current_date);
+    // Fetch existing attendance record for today
+    $check_stmt = $conn->prepare("SELECT attendance_id, login_time, logout_time FROM attendance WHERE (ojt_id = ? OR student_id = ?) AND date = ?");
+    $check_stmt->bind_param("iis", $resolved_ojt_id, $resolved_ojt_id, $current_date);
     $check_stmt->execute();
     $check_result = $check_stmt->get_result();
 
@@ -201,64 +164,35 @@ try {
         return !empty($val) && $val !== '--:--' && $val !== '00:00:00';
     };
 
-    // STRICT VALIDATION: Exactly 1 Time-In and 1 Time-Out only per shift
-    if ($column_to_update === 'time_in_morning') {
-        if ($existing && $hasTime($existing['time_in_morning'])) {
+    // STRICT VALIDATION: Exactly 1 Login and 1 Logout per event
+    if ($is_login) {
+        if ($existing && $hasTime($existing['login_time'])) {
             echo json_encode([
                 "status" => "error",
-                "message" => "Already recorded Morning Time-In today (" . date("h:i A", strtotime($existing['time_in_morning'])) . ")! Only 1 Time-In is allowed per shift."
+                "message" => "Already recorded Login today (" . date("h:i A", strtotime($existing['login_time'])) . ")! Only 1 Login is allowed per event."
             ]);
             exit();
         }
-    } elseif ($column_to_update === 'time_out_morning') {
-        if (!$existing || !$hasTime($existing['time_in_morning'])) {
+    } else {
+        // Logout
+        if (!$existing || !$hasTime($existing['login_time'])) {
             echo json_encode([
                 "status" => "error",
-                "message" => "Cannot record Morning Time-Out. No Morning Time-In record found for today."
+                "message" => "Cannot record Logout. No Login record found for today."
             ]);
             exit();
         }
-        if ($hasTime($existing['time_out_morning'])) {
+        if ($hasTime($existing['logout_time'])) {
             echo json_encode([
                 "status" => "error",
-                "message" => "Already recorded Morning Time-Out today (" . date("h:i A", strtotime($existing['time_out_morning'])) . ")! Only 1 Time-Out is allowed per shift."
+                "message" => "Already recorded Logout today (" . date("h:i A", strtotime($existing['logout_time'])) . ")! Only 1 Logout is allowed per event."
             ]);
             exit();
         }
-        if (strtotime($current_time) <= strtotime($existing['time_in_morning'])) {
+        if (strtotime($current_time) <= strtotime($existing['login_time'])) {
             echo json_encode([
                 "status" => "error",
-                "message" => "Morning Time-Out must be after Morning Time-In (" . date("h:i A", strtotime($existing['time_in_morning'])) . ")."
-            ]);
-            exit();
-        }
-    } elseif ($column_to_update === 'time_in_afternoon') {
-        if ($existing && $hasTime($existing['time_in_afternoon'])) {
-            echo json_encode([
-                "status" => "error",
-                "message" => "Already recorded Afternoon Time-In today (" . date("h:i A", strtotime($existing['time_in_afternoon'])) . ")! Only 1 Time-In is allowed per shift."
-            ]);
-            exit();
-        }
-    } elseif ($column_to_update === 'time_out_afternoon') {
-        if (!$existing || !$hasTime($existing['time_in_afternoon'])) {
-            echo json_encode([
-                "status" => "error",
-                "message" => "Cannot record Afternoon Time-Out. No Afternoon Time-In record found for today."
-            ]);
-            exit();
-        }
-        if ($hasTime($existing['time_out_afternoon'])) {
-            echo json_encode([
-                "status" => "error",
-                "message" => "Already recorded Afternoon Time-Out today (" . date("h:i A", strtotime($existing['time_out_afternoon'])) . ")! Only 1 Time-Out is allowed per shift."
-            ]);
-            exit();
-        }
-        if (strtotime($current_time) <= strtotime($existing['time_in_afternoon'])) {
-            echo json_encode([
-                "status" => "error",
-                "message" => "Afternoon Time-Out must be after Afternoon Time-In (" . date("h:i A", strtotime($existing['time_in_afternoon'])) . ")."
+                "message" => "Logout must be after Login (" . date("h:i A", strtotime($existing['login_time'])) . ")."
             ]);
             exit();
         }
@@ -339,17 +273,7 @@ try {
         }
     }
 
-    $photo_shift_map = [
-        'time_in_morning' => 'Morning_In',
-        'Morning_In' => 'Morning_In',
-        'time_out_morning' => 'Morning_Out',
-        'Morning_Out' => 'Morning_Out',
-        'time_in_afternoon' => 'Afternoon_In',
-        'Afternoon_In' => 'Afternoon_In',
-        'time_out_afternoon' => 'Afternoon_Out',
-        'Afternoon_Out' => 'Afternoon_Out',
-    ];
-    $enum_shift = isset($photo_shift_map[$raw_shift]) ? $photo_shift_map[$raw_shift] : 'Morning_In';
+    $enum_shift = $is_login ? 'Login' : 'Logout';
 
     if ($existing) {
         $update_stmt = $conn->prepare("UPDATE attendance SET $column_to_update = ?, student_id = COALESCE(student_id, ?), status = 'Pending', remarks = NULL WHERE attendance_id = ?");

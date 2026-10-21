@@ -58,7 +58,7 @@ if ($ev_stmt) {
 }
 
 // Today's attendance for student
-$att_stmt = $conn->prepare("SELECT attendance_id, time_in_morning, time_out_morning, time_in_afternoon, time_out_afternoon, status, morning_status, afternoon_status, morning_remarks, afternoon_remarks FROM attendance WHERE (student_id = ? OR ojt_id = ?) AND date = ? LIMIT 1");
+$att_stmt = $conn->prepare("SELECT attendance_id, login_time, logout_time, status, remarks FROM attendance WHERE (student_id = ? OR ojt_id = ?) AND date = ? LIMIT 1");
 $today_att = null;
 if ($att_stmt) {
     $att_stmt->bind_param("iis", $student_id, $student_id, $today);
@@ -67,23 +67,35 @@ if ($att_stmt) {
     $att_stmt->close();
 }
 
-$has_timed_in = false;
-$has_timed_out = false;
+$has_logged_in = false;
+$has_logged_out = false;
 $attendance_status_label = "Not Recorded";
 
 if ($today_att) {
-    if (!empty($today_att['time_in_morning']) || !empty($today_att['time_in_afternoon'])) {
-        $has_timed_in = true;
-        $attendance_status_label = "Timed In (Present)";
+    if (!empty($today_att['login_time'])) {
+        $has_logged_in = true;
+        $attendance_status_label = "Logged In (Present)";
     }
-    if (!empty($today_att['time_out_morning']) || !empty($today_att['time_out_afternoon'])) {
-        $has_timed_out = true;
-        $attendance_status_label = "Completed Attendance";
+    if (!empty($today_att['logout_time'])) {
+        $has_logged_out = true;
+        $attendance_status_label = "Logged Out (Completed)";
     }
     if ($today_att['status'] === 'Confirmed') {
         $attendance_status_label = "Verified Present";
     }
+    // Backward compatibility aliases
+    $today_att['time_in_morning'] = $today_att['login_time'];
+    $today_att['time_out_morning'] = '--:--';
+    $today_att['time_in_afternoon'] = '--:--';
+    $today_att['time_out_afternoon'] = $today_att['logout_time'];
+    $today_att['morning_status'] = $today_att['status'];
+    $today_att['afternoon_status'] = $today_att['status'];
+    $today_att['morning_remarks'] = $today_att['remarks'];
+    $today_att['afternoon_remarks'] = $today_att['remarks'];
 }
+
+$has_timed_in = $has_logged_in;
+$has_timed_out = $has_logged_out;
 
 // Student & Dean details
 $st_stmt = $conn->prepare("SELECT s.full_name, s.student_number, u.full_name as dean_name FROM student s LEFT JOIN users u ON s.dean_id = u.user_id WHERE s.student_id = ? LIMIT 1");
@@ -101,6 +113,8 @@ echo json_encode([
         "total_days" => $total_days,
         "total_events_attended" => $total_days,
         "formatted_time" => "$total_days Event Days",
+        "has_logged_in" => $has_logged_in,
+        "has_logged_out" => $has_logged_out,
         "has_timed_in" => $has_timed_in,
         "has_timed_out" => $has_timed_out,
         "today_status_label" => $attendance_status_label,

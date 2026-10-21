@@ -166,25 +166,41 @@ if (!function_exists('syncAttendanceToCitSystem')) {
             $rfid_uid = trim($student['rfid_uid'] ?? '');
             $course_code = !empty($student['course_code']) ? trim($student['course_code']) : 'BSCS';
 
-            // Split name into First and Last
+            // Split name into First and Last, and extract core surname
             $parts = explode(' ', $full_name);
             $firstname = count($parts) > 1 ? array_shift($parts) : $full_name;
             $lastname = count($parts) > 0 ? implode(' ', $parts) : 'Student';
+            $bare_lastname = trim(preg_replace('/^(?:[A-Za-z]\.?\s+)+/', '', $lastname));
+            if (empty($bare_lastname)) $bare_lastname = $lastname;
+            $like_lastname = '%' . $bare_lastname . '%';
 
             // 2. Find or Create Student in CIT's `students` table
             $cit_student_id = 0;
             $stmt_find_cit = $conn->prepare("
-                SELECT id 
+                SELECT id, student_id, rfid_uid 
                 FROM students 
-                WHERE student_id = ? OR student_id = ? OR (rfid_uid IS NOT NULL AND rfid_uid != '' AND rfid_uid = ?)
+                WHERE (student_id IS NOT NULL AND student_id != '' AND (student_id = ? OR student_id = ?))
+                   OR (rfid_uid IS NOT NULL AND rfid_uid != '' AND (rfid_uid = ? OR rfid_uid = ? OR rfid_uid = ?))
+                   OR (
+                       LOWER(TRIM(firstname)) = LOWER(TRIM(?)) 
+                       AND (
+                           LOWER(TRIM(lastname)) = LOWER(TRIM(?)) 
+                           OR LOWER(TRIM(lastname)) = LOWER(TRIM(?))
+                           OR LOWER(TRIM(lastname)) LIKE LOWER(?)
+                       )
+                   )
                 LIMIT 1
             ");
             if ($stmt_find_cit) {
-                $stmt_find_cit->bind_param("sss", $student_number, $id_no, $rfid_uid);
+                $stmt_find_cit->bind_param("sssssssss", $student_number, $id_no, $rfid_uid, $student_number, $id_no, $firstname, $lastname, $bare_lastname, $like_lastname);
                 $stmt_find_cit->execute();
                 $res_find = $stmt_find_cit->get_result();
                 if ($row_find = $res_find->fetch_assoc()) {
                     $cit_student_id = intval($row_find['id']);
+                    // If RFID exists on mobile but missing in CIT students, link it
+                    if (!empty($rfid_uid) && empty($row_find['rfid_uid'])) {
+                        $conn->query("UPDATE students SET rfid_uid = '" . $conn->real_escape_string($rfid_uid) . "' WHERE id = $cit_student_id");
+                    }
                 }
                 $stmt_find_cit->close();
             }
@@ -331,9 +347,8 @@ if (!function_exists('syncDeanConfirmationToCitSystem')) {
             // 1. Fetch attendance log and student details
             $stmt = $conn->prepare("
                 SELECT 
-                    a.attendance_id, a.date, a.time_in_morning, a.time_out_morning,
-                    a.time_in_afternoon, a.time_out_afternoon, a.status,
-                    a.morning_status, a.afternoon_status, a.student_id,
+                    a.attendance_id, a.date, a.login_time, a.logout_time, a.status,
+                    a.student_id,
                     s.student_id AS sbc_student_id, s.student_number, s.id_no, s.rfid_uid, s.full_name,
                     c.course_code
                 FROM attendance a
@@ -361,20 +376,35 @@ if (!function_exists('syncDeanConfirmationToCitSystem')) {
             $parts = explode(' ', $full_name);
             $firstname = count($parts) > 1 ? array_shift($parts) : $full_name;
             $lastname = count($parts) > 0 ? implode(' ', $parts) : 'Student';
+            $bare_lastname = trim(preg_replace('/^(?:[A-Za-z]\.?\s+)+/', '', $lastname));
+            if (empty($bare_lastname)) $bare_lastname = $lastname;
+            $like_lastname = '%' . $bare_lastname . '%';
 
             // 2. Find or Create Student in CIT's `students` table
             $cit_student_id = 0;
             $stmt_find = $conn->prepare("
-                SELECT id FROM students 
-                WHERE student_id = ? OR student_id = ? OR (rfid_uid IS NOT NULL AND rfid_uid != '' AND rfid_uid = ?)
+                SELECT id, student_id, rfid_uid FROM students 
+                WHERE (student_id IS NOT NULL AND student_id != '' AND (student_id = ? OR student_id = ?))
+                   OR (rfid_uid IS NOT NULL AND rfid_uid != '' AND (rfid_uid = ? OR rfid_uid = ? OR rfid_uid = ?))
+                   OR (
+                       LOWER(TRIM(firstname)) = LOWER(TRIM(?)) 
+                       AND (
+                           LOWER(TRIM(lastname)) = LOWER(TRIM(?)) 
+                           OR LOWER(TRIM(lastname)) = LOWER(TRIM(?))
+                           OR LOWER(TRIM(lastname)) LIKE LOWER(?)
+                       )
+                   )
                 LIMIT 1
             ");
             if ($stmt_find) {
-                $stmt_find->bind_param("sss", $student_number, $id_no, $rfid_uid);
+                $stmt_find->bind_param("sssssssss", $student_number, $id_no, $rfid_uid, $student_number, $id_no, $firstname, $lastname, $bare_lastname, $like_lastname);
                 $stmt_find->execute();
                 $find_res = $stmt_find->get_result();
                 if ($find_row = $find_res->fetch_assoc()) {
                     $cit_student_id = intval($find_row['id']);
+                    if (!empty($rfid_uid) && empty($find_row['rfid_uid'])) {
+                        $conn->query("UPDATE students SET rfid_uid = '" . $conn->real_escape_string($rfid_uid) . "' WHERE id = $cit_student_id");
+                    }
                 }
                 $stmt_find->close();
             }
@@ -415,7 +445,7 @@ if (!function_exists('syncDeanConfirmationToCitSystem')) {
 
             // 4. Action evaluation
             if ($action === 'Confirmed') {
-                $login_time_val = !empty($row['time_in_morning']) ? $row['time_in_morning'] : (!empty($row['time_in_afternoon']) ? $row['time_in_afternoon'] : date("H:i:s"));
+                $login_time_val = !empty($row['login_time']) ? $row['login_time'] : date("H:i:s");
                 $login_dt = $date . " " . $login_time_val;
 
                 // Update any pending records to 'login'
@@ -433,7 +463,7 @@ if (!function_exists('syncDeanConfirmationToCitSystem')) {
                 }
 
                 // If logout is present, record logout as well
-                $logout_time_val = !empty($row['time_out_afternoon']) ? $row['time_out_afternoon'] : (!empty($row['time_out_morning']) ? $row['time_out_morning'] : null);
+                $logout_time_val = !empty($row['logout_time']) ? $row['logout_time'] : null;
                 if ($logout_time_val) {
                     $logout_dt = $date . " " . $logout_time_val;
                     $chk_lo = $conn->query("SELECT id FROM cit_attendance WHERE event_id = $cit_event_id AND student_id = $cit_student_id AND status = 'logout' LIMIT 1");

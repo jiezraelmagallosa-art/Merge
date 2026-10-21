@@ -97,20 +97,6 @@ class InfinityHttpClient {
     Encoding? encoding,
     Duration timeout = const Duration(seconds: 10),
   }) async {
-    // Only probe on native platforms
-    if (!kIsWeb && (_testCookie == null || _testCookie!.isEmpty)) {
-      try {
-        final probe = await http
-            .get(url, headers: _buildHeaders(null))
-            .timeout(const Duration(seconds: 5));
-        if (probe.body.contains('aes.js') || probe.body.contains('toNumbers(')) {
-          final cookie = _solveChallenge(probe.body);
-          if (cookie != null) {
-            _testCookie = cookie;
-          }
-        }
-      } catch (_) {}
-    }
 
     final response = await http
         .post(

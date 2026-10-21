@@ -55,10 +55,8 @@ try {
             'CIT Event' AS site_name,
             'CIT Campus' AS site_location,
             COALESCE(s.year_level, cs.year_level, '4') AS year_level,
-            a.time_in_morning,
-            a.time_out_morning,
-            a.time_in_afternoon,
-            a.time_out_afternoon,
+            a.login_time,
+            a.logout_time,
             a.status AS attendance_status
         FROM daily_journal j
         JOIN student s ON j.student_id = s.student_id

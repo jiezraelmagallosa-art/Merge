@@ -11,22 +11,18 @@
  */
 
 // ------------------------------------------------------------
-// DATABASE CONFIGURATION
-// [CHANGE ME] Update these for your production MySQL server.
+// DATABASE CONFIGURATION - CIT Attendance System (Local XAMPP)
 // ------------------------------------------------------------
-$is_local_env = (php_sapi_name() === 'cli' && empty(getenv('DB_HOST')))
-    || (!empty($_SERVER['HTTP_HOST']) && (strpos($_SERVER['HTTP_HOST'], 'localhost') !== false || strpos($_SERVER['HTTP_HOST'], '127.0.0.1') !== false));
-
-define('DB_HOST', getenv('DB_HOST') ?: ($is_local_env ? 'localhost' : 'sql110.infinityfree.com'));
-define('DB_USER', getenv('DB_USER') ?: ($is_local_env ? 'root' : 'if0_42771510'));
-define('DB_PASS', getenv('DB_PASS') !== false ? getenv('DB_PASS') : ($is_local_env ? '' : '2tG0ijV6kq8'));
-define('DB_NAME', getenv('DB_NAME') ?: ($is_local_env ? 'cit_attendance_db' : 'if0_42771510_cit_attendance_db'));
+define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
+define('DB_USER', getenv('DB_USER') ?: 'root');
+define('DB_PASS', getenv('DB_PASS') !== false ? getenv('DB_PASS') : '');
+define('DB_NAME', getenv('DB_NAME') ?: 'cit_attendance_db');
 define('DB_PORT', getenv('DB_PORT') ? intval(getenv('DB_PORT')) : 3306);
 
 // ------------------------------------------------------------
 // APPLICATION SETTINGS
 // ------------------------------------------------------------
-define('APP_NAME', 'SBC Student Records Attendance System');
+define('APP_NAME', 'CIT Attendance System');
 define('APP_VERSION', '1.0.0');
 define('APP_TIMEZONE', 'Asia/Manila');
 

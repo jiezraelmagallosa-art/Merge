@@ -47,10 +47,8 @@ try {
             j.updated_at,
             'CIT Event' AS site_name,
             'CIT Campus' AS site_location,
-            a.time_in_morning,
-            a.time_out_morning,
-            a.time_in_afternoon,
-            a.time_out_afternoon,
+            a.login_time,
+            a.logout_time,
             a.status AS attendance_status
         FROM daily_journal j
         LEFT JOIN attendance a ON j.attendance_id = a.attendance_id

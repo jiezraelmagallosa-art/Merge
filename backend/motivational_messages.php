@@ -200,15 +200,8 @@ function getRandomMotivationalMessage($action_or_column)
         return getCompletionMessage();
     }
 
-    $is_time_out = (strpos($action_lower, 'out') !== false);
-    $is_morning_out = $is_time_out && (strpos($action_lower, 'morning') !== false || strpos($action_lower, 'midday') !== false || strpos($action_lower, 'lunch') !== false || strpos($action_lower, 'am') !== false);
-    $is_afternoon_out = $is_time_out && (strpos($action_lower, 'afternoon') !== false || strpos($action_lower, 'pm') !== false);
-
-    if ($is_morning_out) {
-        $msgs = get_morning_time_out_messages();
-    } elseif ($is_afternoon_out) {
-        $msgs = get_afternoon_time_out_messages();
-    } elseif ($is_time_out) {
+    $is_logout = (strpos($action_lower, 'out') !== false || strpos($action_lower, 'logout') !== false);
+    if ($is_logout) {
         $msgs = get_afternoon_time_out_messages();
     } else {
         $msgs = get_time_in_messages();

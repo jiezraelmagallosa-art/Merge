@@ -139,76 +139,122 @@ try {
 
     // Student registered successfully - ojt assignment omitted as system is for pure event attendance
 
-    // ========================================================
-    // Synchronize Student Registration to CIT Department System
-    // ========================================================
-    try {
-        require_once 'cit_sync_helper.php';
-        ensureCitDepartmentTables($conn);
+        // ========================================================
+        // Synchronize Student Registration to CIT Department System
+        // ========================================================
+        try {
+            require_once 'cit_sync_helper.php';
+            ensureCitDepartmentTables($conn);
 
-        // 1. Determine Student ID in CIT Department System:
-        // Use the exact typed Student ID No. ($id_no or $student_number)
-        $cit_student_id_str = !empty($id_no) ? $id_no : $student_number;
+            // 1. Determine Student ID in CIT Department System:
+            $cit_student_id_str = !empty($id_no) ? $id_no : $student_number;
 
-        // 2. Parse First Name and Last Name from full_name:
-        $name_trimmed = trim($full_name);
-        $name_parts = preg_split('/\s+/', $name_trimmed);
-        if (count($name_parts) > 1) {
-            $firstname = array_shift($name_parts);
-            $lastname = implode(' ', $name_parts);
-        } else {
-            $firstname = $name_trimmed;
-            $lastname = 'Student';
-        }
-
-        // 3. Determine course code:
-        $course_code = 'BSIS';
-        $c_stmt = $conn->prepare("SELECT course_code FROM course WHERE course_id = ? LIMIT 1");
-        if ($c_stmt) {
-            $c_stmt->bind_param("i", $course_id);
-            $c_stmt->execute();
-            $c_res = $c_stmt->get_result();
-            if ($c_row = $c_res->fetch_assoc()) {
-                if (!empty($c_row['course_code'])) {
-                    $course_code = trim($c_row['course_code']);
-                }
-            }
-            $c_stmt->close();
-        }
-
-        // 4. Clean and normalize year_level:
-        $clean_year_level = preg_replace('/[^0-9]/', '', $year_level);
-        if (empty($clean_year_level)) {
-            $clean_year_level = !empty($year_level) ? $year_level : '4';
-        }
-
-        // 5. Insert or Update in CIT Department System `students` table:
-        $check_cit = $conn->prepare("SELECT id FROM students WHERE student_id = ? OR (LOWER(firstname) = LOWER(?) AND LOWER(lastname) = LOWER(?)) LIMIT 1");
-        if ($check_cit) {
-            $check_cit->bind_param("sss", $cit_student_id_str, $firstname, $lastname);
-            $check_cit->execute();
-            $cit_match = $check_cit->get_result();
-            if ($cit_row = $cit_match->fetch_assoc()) {
-                $cit_db_id = intval($cit_row['id']);
-                $upd_cit = $conn->prepare("UPDATE students SET student_id = ?, firstname = ?, lastname = ?, course = ?, year_level = ?, status = 'Active' WHERE id = ?");
-                if ($upd_cit) {
-                    $upd_cit->bind_param("sssssi", $cit_student_id_str, $firstname, $lastname, $course_code, $clean_year_level, $cit_db_id);
-                    $upd_cit->execute();
-                    $upd_cit->close();
-                }
+            // 2. Parse First Name and Last Name from full_name:
+            $name_trimmed = trim($full_name);
+            $name_parts = preg_split('/\s+/', $name_trimmed);
+            if (count($name_parts) > 1) {
+                $firstname = array_shift($name_parts);
+                $lastname = implode(' ', $name_parts);
             } else {
-                $ins_cit = $conn->prepare("INSERT INTO students (student_id, firstname, lastname, course, year_level, status) VALUES (?, ?, ?, ?, ?, 'Active')");
-                if ($ins_cit) {
-                    $ins_cit->bind_param("sssss", $cit_student_id_str, $firstname, $lastname, $course_code, $clean_year_level);
-                    $ins_cit->execute();
-                    $ins_cit->close();
-                }
+                $firstname = $name_trimmed;
+                $lastname = 'Student';
             }
-            $check_cit->close();
+
+            // Extract bare surname without middle initials (e.g. "P. Magallosa" -> "Magallosa")
+            $bare_lastname = trim(preg_replace('/^(?:[A-Za-z]\.?\s+)+/', '', $lastname));
+            if (empty($bare_lastname)) {
+                $bare_lastname = $lastname;
+            }
+
+            // 3. Determine course code:
+            $course_code = 'BSIS';
+            $c_stmt = $conn->prepare("SELECT course_code FROM course WHERE course_id = ? LIMIT 1");
+            if ($c_stmt) {
+                $c_stmt->bind_param("i", $course_id);
+                $c_stmt->execute();
+                $c_res = $c_stmt->get_result();
+                if ($c_row = $c_res->fetch_assoc()) {
+                    if (!empty($c_row['course_code'])) {
+                        $course_code = trim($c_row['course_code']);
+                    }
+                }
+                $c_stmt->close();
+            }
+
+            // 4. Clean and normalize year_level:
+            $clean_year_level = preg_replace('/[^0-9]/', '', $year_level);
+            if (empty($clean_year_level)) {
+                $clean_year_level = !empty($year_level) ? $year_level : '4';
+            }
+
+            // 5. Intelligent Match & Merge in CIT Department System `students` table:
+            // Matches by:
+            // a) Exact student_id OR rfid_uid
+            // b) Normalized first name and surname (with or without middle initial)
+            $like_pattern = '%' . $bare_lastname . '%';
+            $check_cit = $conn->prepare("
+                SELECT id, student_id, rfid_uid, firstname, lastname 
+                FROM students 
+                WHERE (student_id IS NOT NULL AND student_id != '' AND (student_id = ? OR student_id = ?))
+                   OR (rfid_uid IS NOT NULL AND rfid_uid != '' AND (rfid_uid = ? OR rfid_uid = ?))
+                   OR (
+                       LOWER(TRIM(firstname)) = LOWER(TRIM(?)) 
+                       AND (
+                           LOWER(TRIM(lastname)) = LOWER(TRIM(?)) 
+                           OR LOWER(TRIM(lastname)) = LOWER(TRIM(?))
+                           OR LOWER(TRIM(lastname)) LIKE LOWER(?)
+                       )
+                   )
+                ORDER BY id ASC
+                LIMIT 1
+            ");
+
+            if ($check_cit) {
+                $check_cit->bind_param("ssssssss", $cit_student_id_str, $student_number, $cit_student_id_str, $student_number, $firstname, $lastname, $bare_lastname, $like_pattern);
+                $check_cit->execute();
+                $cit_match = $check_cit->get_result();
+
+                if ($cit_row = $cit_match->fetch_assoc()) {
+                    $cit_db_id = intval($cit_row['id']);
+                    $existing_student_id = trim($cit_row['student_id'] ?? '');
+                    $existing_rfid = trim($cit_row['rfid_uid'] ?? '');
+
+                    // Preserve existing RFID or Student ID cleanly
+                    $final_student_id = !empty($cit_student_id_str) ? $cit_student_id_str : $existing_student_id;
+                    $final_rfid = $existing_rfid;
+                    if ($existing_student_id !== '' && $existing_student_id !== $final_student_id && empty($final_rfid)) {
+                        $final_rfid = $existing_student_id;
+                    }
+
+                    $upd_cit = $conn->prepare("UPDATE students SET student_id = ?, rfid_uid = ?, firstname = ?, lastname = ?, course = ?, year_level = ?, status = 'Active' WHERE id = ?");
+                    if ($upd_cit) {
+                        $upd_cit->bind_param("ssssssi", $final_student_id, $final_rfid, $firstname, $lastname, $course_code, $clean_year_level, $cit_db_id);
+                        $upd_cit->execute();
+                        $upd_cit->close();
+                    }
+
+                    // Sync RFID back to mobile student table if discovered
+                    if (!empty($final_rfid)) {
+                        $upd_m = $conn->prepare("UPDATE student SET rfid_uid = ? WHERE student_id = ?");
+                        if ($upd_m) {
+                            $upd_m->bind_param("si", $final_rfid, $student_id);
+                            $upd_m->execute();
+                            $upd_m->close();
+                        }
+                    }
+                } else {
+                    $ins_cit = $conn->prepare("INSERT INTO students (student_id, firstname, lastname, course, year_level, status) VALUES (?, ?, ?, ?, ?, 'Active')");
+                    if ($ins_cit) {
+                        $ins_cit->bind_param("sssss", $cit_student_id_str, $firstname, $lastname, $course_code, $clean_year_level);
+                        $ins_cit->execute();
+                        $ins_cit->close();
+                    }
+                }
+                $check_cit->close();
+            }
+        } catch (Exception $sync_ex) {
+            error_log("CIT Student Sync Error on Register: " . $sync_ex->getMessage());
         }
-    } catch (Exception $sync_ex) {
-        error_log("CIT Student Sync Error on Register: " . $sync_ex->getMessage());
-    }
 
     echo json_encode([
         "status" => "success",

@@ -334,73 +334,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _handleAttendanceAction(String actionType) async {
-    final String? shift = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          actionType == 'time_in'
-              ? 'Select Time In Shift'
-              : 'Select Time Out Shift',
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: primaryNavy,
-            fontSize: 20,
-          ),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryNavy,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                icon: const Icon(Icons.wb_sunny_rounded, color: accentGold),
-                label: const Text(
-                  'Morning Shift',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                onPressed: () => Navigator.pop(context, 'morning'),
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryNavy,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                icon: const Icon(Icons.wb_twilight_rounded, color: accentGold),
-                label: const Text(
-                  'Afternoon Shift',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                onPressed: () => Navigator.pop(context, 'afternoon'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (shift == null) return;
-
-
-
     setState(() {
       _isActionLoading = true;
     });
@@ -485,7 +418,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     await _closeCamera();
 
-    final String fullAction = '${actionType}_$shift';
+    final String fullAction = actionType;
     final result = await ApiService.recordAttendance(
       studentId: widget.studentId.toString(),
       action: fullAction,
@@ -564,7 +497,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Student Records',
+              'CIT Attendee',
               style: TextStyle(
                 fontSize: _showWelcome ? 14 : 18,
                 fontWeight: _showWelcome ? FontWeight.normal : FontWeight.bold,
@@ -954,11 +887,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 child: ElevatedButton.icon(
                   onPressed: _isActionLoading
                       ? null
-                      : () => _handleAttendanceAction('time_in'),
+                      : () => _handleAttendanceAction('login'),
                   icon: const Icon(Icons.login_rounded, color: Colors.white),
                   label: const Text(
-                    'TIME IN',
-                    style: TextStyle(color: Colors.white),
+                    'LOGIN',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryNavy,
@@ -974,11 +907,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 child: OutlinedButton.icon(
                   onPressed: _isActionLoading
                       ? null
-                      : () => _handleAttendanceAction('time_out'),
+                      : () => _handleAttendanceAction('logout'),
                   icon: const Icon(Icons.logout_rounded, color: primaryNavy),
                   label: const Text(
-                    'TIME OUT',
-                    style: TextStyle(color: primaryNavy),
+                    'LOGOUT',
+                    style: TextStyle(color: primaryNavy, fontWeight: FontWeight.bold),
                   ),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),

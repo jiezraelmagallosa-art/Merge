@@ -108,9 +108,6 @@ require_once 'db_connect.php';
         }
     }
 
-    $m_min = "CASE WHEN time_in_morning IS NOT NULL AND time_out_morning IS NOT NULL AND time_out_morning > time_in_morning THEN TIMESTAMPDIFF(MINUTE, time_in_morning, time_out_morning) ELSE 0 END";
-    $a_min = "CASE WHEN time_in_afternoon IS NOT NULL AND time_out_afternoon IS NOT NULL AND time_out_afternoon > time_in_afternoon THEN TIMESTAMPDIFF(MINUTE, time_in_afternoon, time_out_afternoon) ELSE 0 END";
-
     if ($result && $result->num_rows > 0) {
         while ($row = $result->fetch_assoc()) {
             $ojt_id = intval($row['ojt_id'] ?? 0);

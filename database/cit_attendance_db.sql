@@ -221,20 +221,14 @@ CREATE TABLE IF NOT EXISTS student (
     INDEX idx_student_rfid (rfid_uid)
 ) ENGINE=InnoDB;
 
--- 19. Student Daily Attendance Logs (Clock In/Out for Event)
+-- 19. Student Daily Attendance Logs (Login / Logout for Event)
 CREATE TABLE IF NOT EXISTS attendance (
     attendance_id INT PRIMARY KEY AUTO_INCREMENT,
     student_id INT NOT NULL,
     date DATE NOT NULL,
-    time_in_morning TIME NULL,
-    time_out_morning TIME NULL,
-    time_in_afternoon TIME NULL,
-    time_out_afternoon TIME NULL,
+    login_time TIME NULL,
+    logout_time TIME NULL,
     status VARCHAR(50) DEFAULT 'Pending',
-    morning_status VARCHAR(50) DEFAULT 'Pending',
-    morning_remarks TEXT NULL,
-    afternoon_status VARCHAR(50) DEFAULT 'Pending',
-    afternoon_remarks TEXT NULL,
     remarks TEXT NULL,
     ojt_id INT NULL DEFAULT NULL,
     site_id INT NULL DEFAULT NULL,
@@ -246,7 +240,7 @@ CREATE TABLE IF NOT EXISTS attendance (
 CREATE TABLE IF NOT EXISTS photo (
     photo_id INT PRIMARY KEY AUTO_INCREMENT,
     attendance_id INT NOT NULL,
-    shift_type ENUM('Morning_In', 'Morning_Out', 'Afternoon_In', 'Afternoon_Out') NOT NULL,
+    shift_type VARCHAR(50) NOT NULL DEFAULT 'Login',
     image_path VARCHAR(255) NOT NULL,
     captured_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_photo_att (attendance_id)

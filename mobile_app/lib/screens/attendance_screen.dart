@@ -243,9 +243,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     children: [
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: _isActionLoading ? null : () => _handleAttendanceSubmit('time_in_morning'),
+                          onPressed: _isActionLoading ? null : () => _handleAttendanceSubmit('login'),
                           icon: const Icon(Icons.login_rounded, color: Colors.white),
-                          label: const Text('TIME IN', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                          label: const Text('LOGIN', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primaryNavy,
                             padding: const EdgeInsets.symmetric(vertical: 14),
@@ -256,9 +256,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: _isActionLoading ? null : () => _handleAttendanceSubmit('time_out_morning'),
+                          onPressed: _isActionLoading ? null : () => _handleAttendanceSubmit('logout'),
                           icon: const Icon(Icons.logout_rounded, color: Colors.white),
-                          label: const Text('TIME OUT', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                          label: const Text('LOGOUT', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.amber.shade800,
                             padding: const EdgeInsets.symmetric(vertical: 14),
@@ -306,7 +306,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                 color: isPending ? Colors.orange.shade900 : Colors.green.shade900,
                               ),
                             ),
-                            title: Text("Date: ${log.date} - ${log.timeIn}"),
+                            title: Text("Date: ${log.date} | Login: ${log.timeIn.isNotEmpty ? log.timeIn : '--:--'}${log.timeOut.isNotEmpty ? ' | Logout: ' + log.timeOut : ''}"),
                             subtitle: Text("Student ID: ${log.studentId}"),
                             trailing: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

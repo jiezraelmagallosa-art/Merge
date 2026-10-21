@@ -17,8 +17,18 @@ class AppColors {
 }
 
 class AppConfig {
-  // Default host for production server (configurable dynamically in app)
-  static String _activeHost = kIsWeb ? "localhost" : "deanadmin.infinityfreeapp.com";
+  // Default host for local XAMPP server
+  static String _defaultHost() {
+    if (kIsWeb) return "localhost";
+    try {
+      // 192.168.1.8 is the PC's Wi-Fi IP address for physical phones
+      if (Platform.isAndroid) return "192.168.1.8";
+      if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) return "localhost";
+    } catch (_) {}
+    return "localhost";
+  }
+
+  static String _activeHost = _defaultHost();
   static final List<String> _customHosts = [];
 
   static String get serverHost => _activeHost;
@@ -40,18 +50,19 @@ class AppConfig {
       final savedHost = prefs.getString('server_host');
       if (savedHost != null &&
           savedHost.trim().isNotEmpty &&
-          savedHost.trim() != "192.168.1.3" &&
+          !savedHost.toLowerCase().contains("infinityfree") &&
+          !savedHost.toLowerCase().contains("sbc") &&
           savedHost.trim() != "YOUR_SERVER_IP_OR_DOMAIN" &&
-          (!kIsWeb || (savedHost.trim() != "deanadmin.infinityfreeapp.com"))) {
+          savedHost.trim() != "10.0.0.56") {
         _activeHost = savedHost.trim().replaceAll(RegExp(r'/+$'), '');
         if (!_customHosts.contains(_activeHost)) {
           _customHosts.insert(0, _activeHost);
         }
       } else {
-        _activeHost = kIsWeb ? "localhost" : "deanadmin.infinityfreeapp.com";
+        _activeHost = _defaultHost();
       }
     } catch (_) {
-      _activeHost = kIsWeb ? "localhost" : "deanadmin.infinityfreeapp.com";
+      _activeHost = _defaultHost();
     }
   }
 
@@ -74,11 +85,8 @@ class AppConfig {
     }
 
     if (kIsWeb) {
-      if (h == 'localhost' || h == '127.0.0.1' || h.isEmpty || h == 'deanadmin.infinityfreeapp.com') {
+      if (h == 'localhost' || h == '127.0.0.1' || h.isEmpty) {
         return "http://localhost/CIT%20Attendance%20System/backend";
-      }
-      if (h.contains('.') && !RegExp(r'^\d+\.\d+\.\d+\.\d+$').hasMatch(h)) {
-        return "http://$h/backend";
       }
       return "http://$h/CIT%20Attendance%20System/backend";
     }
@@ -88,9 +96,13 @@ class AppConfig {
       }
     } catch (_) {}
 
-    // Public domain name (e.g. deanadmin.infinityfreeapp.com or custom domain)
-    if (h.contains('.') && !RegExp(r'^\d+\.\d+\.\d+\.\d+$').hasMatch(h)) {
-      return "http://$h/backend";
+    if (h == 'localhost' || h == '127.0.0.1') {
+      try {
+        if (Platform.isAndroid) {
+          return "http://10.0.2.2/CIT%20Attendance%20System/backend";
+        }
+      } catch (_) {}
+      return "http://localhost/CIT%20Attendance%20System/backend";
     }
 
     // Local IP on local XAMPP network
@@ -104,16 +116,15 @@ class AppConfig {
     for (final h in _customHosts) {
       if (!list.contains(h)) list.add(h);
     }
-    // Add known candidate hosts for auto-discovery
+    // Only local candidate hosts on XAMPP network
     final defaults = [
-      "deanadmin.infinityfreeapp.com",
+      "192.168.1.8",
+      "localhost",
+      "127.0.0.1",
+      "10.0.2.2",
       "192.168.1.3",
       "192.168.1.100",
       "192.168.1.7",
-      "10.0.0.56",
-      "10.0.2.2",
-      "127.0.0.1",
-      "localhost",
     ];
     for (final d in defaults) {
       if (!list.contains(d)) list.add(d);

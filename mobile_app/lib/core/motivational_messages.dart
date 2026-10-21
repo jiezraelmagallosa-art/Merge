@@ -17,7 +17,7 @@ class MotivationalMessages {
     "Rise and shine! May you conquer all your tasks today.",
     "Erase the doubts, unleash your potential! Let's start the shift right.",
     "Napakagandang simula! Ipagpatuloy ang kasipagan.",
-    "Araw mo na naman para magningning sa SBC! Good luck!",
+    "Araw mo na naman para magningning sa CIT! Good luck!",
     "A step closer to your dreams. Let's make today count!",
     "Pumasok na may ngiti, magtrabaho nang may puso.",
     "Be unstoppable today! Kayanin ang bawat hamon.",
@@ -39,11 +39,11 @@ class MotivationalMessages {
     "Hindi hadlang ang pagod sa pusong pursigido. Aja!",
     "Araw para ipakita ang galing mo. I-enjoy ang shift!",
     "Sipag at tiyaga ang puhunan. Let's get to work!",
-    "Welcome sa isa pang produktibong araw sa SBC!",
+    "Welcome sa isa pang produktibong araw sa CIT!",
     "Oras na para gumawa ng magandang marka ngayon.",
     "Ang galing ng timing mo! Tuloy-tuloy lang ang swerte.",
     "Ready to learn, ready to lead. Let's do this!",
-    "Ipakita ang tunay na lakas ng isang estudyante ng SBC.",
+    "Ipakita ang tunay na lakas ng isang estudyante ng CIT.",
     "May pag-asa sa taong masipag. Magandang shift sa'yo!",
     "Keep your focus sharp and your heart positive.",
     "Ngayon ang tamang araw para mag-level up!",
@@ -61,7 +61,7 @@ class MotivationalMessages {
     "Job well done! Ingat sa pag-uwi, deserve mo ang pahinga!",
     "Awtomatikong tapos na ang shift! Great hustle today!",
     "Amazing work! Time to recharge for another productive day.",
-    "Isa na namang matagumpay na araw sa SBC! Saludo sa sipag mo.",
+    "Isa na namang matagumpay na araw sa CIT! Saludo sa sipag mo.",
     "Mission accomplished! Uwi na at mag-relax.",
     "Proud of your dedication today. Rest up!",
     "Great job finishing your tasks! Ingat sa biyahe pauwi.",
@@ -178,19 +178,19 @@ class MotivationalMessages {
 
   static bool checkIsTimeIn(String action) {
     final lower = action.toLowerCase();
-    return !lower.contains('out');
+    return !lower.contains('out') && !lower.contains('logout');
   }
 
   static bool checkIsMorningOut(String action) {
     final lower = action.toLowerCase();
-    final isOut = lower.contains('out');
+    final isOut = lower.contains('out') || lower.contains('logout');
     final isMorning = lower.contains('morning') || lower.contains('midday') || lower.contains('lunch') || lower.contains('am');
     return isOut && isMorning;
   }
 
   static bool checkIsAfternoonOut(String action) {
     final lower = action.toLowerCase();
-    final isOut = lower.contains('out');
+    final isOut = lower.contains('out') || lower.contains('logout');
     final isAfternoon = lower.contains('afternoon') || lower.contains('pm');
     return isOut && isAfternoon;
   }
@@ -199,8 +199,6 @@ class MotivationalMessages {
     final rand = Random();
     if (checkIsTimeIn(action)) {
       return timeInMessages[rand.nextInt(timeInMessages.length)];
-    } else if (checkIsMorningOut(action)) {
-      return morningTimeOutMessages[rand.nextInt(morningTimeOutMessages.length)];
     } else {
       return afternoonTimeOutMessages[rand.nextInt(afternoonTimeOutMessages.length)];
     }
@@ -242,7 +240,7 @@ class MotivationalMessages {
               ),
               const SizedBox(height: 16),
               Text(
-                isTimeIn ? 'Time-In Recorded!' : 'Time-Out Recorded!',
+                isTimeIn ? 'Login Recorded!' : 'Logout Recorded!',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 20,

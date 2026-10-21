@@ -89,7 +89,7 @@ try {
 
         // 2. Fetch today's existing attendance record
         $stmt_att = $conn->prepare("
-            SELECT attendance_id, time_in_morning, time_out_morning, time_in_afternoon, time_out_afternoon, remarks, morning_status, afternoon_status
+            SELECT attendance_id, login_time, logout_time, remarks
             FROM attendance
             WHERE (student_id = ? OR ojt_id = ?) AND date = ?
             LIMIT 1
@@ -103,14 +103,6 @@ try {
         $hasTime = function($val) {
             return !empty($val) && $val !== '--:--' && $val !== '00:00:00';
         };
-
-        // Shift definitions & labels
-        $shift_labels = [
-            'time_in_morning'   => 'Morning Time-In',
-            'time_out_morning'  => 'Morning Time-Out',
-            'time_in_afternoon' => 'Afternoon Time-In',
-            'time_out_afternoon'=> 'Afternoon Time-Out'
-        ];
 
         $target_column = '';
         $target_label = '';
@@ -161,43 +153,39 @@ try {
             $in_login_window = ($ev_login && $ev_login_cutoff && $now_time >= $ev_login && $now_time <= $ev_login_cutoff);
             $in_logout_window = ($ev_logout && $ev_logout_cutoff && $now_time >= $ev_logout && $now_time <= $ev_logout_cutoff);
 
-            // Choose appropriate column (morning vs afternoon depending on event time)
-            $col_shift = ($ev_login && $ev_login >= '12:00:00') ? 'afternoon' : 'morning';
-
             if ($in_login_window) {
-                $target_column = 'time_in_' . $col_shift;
-                $target_label = ($col_shift === 'afternoon' ? 'Afternoon' : 'Morning') . ' Time-In';
-                if ($existing_att && $hasTime($existing_att[$target_column])) {
+                $target_column = 'login_time';
+                $target_label = 'Login';
+                if ($existing_att && $hasTime($existing_att['login_time'])) {
                     echo json_encode([
                         "status" => "error",
                         "code" => "ALREADY_COMPLETED_SHIFT",
                         "student" => [
                             "full_name" => $student['full_name'],
                             "student_number" => $student['student_number'],
-                            "course_code" => $student['course_code'] ?? 'OJT'
+                            "course_code" => $student['course_code'] ?? 'CIT'
                         ],
-                        "message" => "Already recorded {$target_label} today (" . date("h:i A", strtotime($existing_att[$target_column])) . ")."
+                        "message" => "Already recorded Login today (" . date("h:i A", strtotime($existing_att['login_time'])) . ")."
                     ]);
                     exit();
                 }
             } elseif ($in_logout_window) {
-                $target_column = 'time_out_' . $col_shift;
-                $target_label = ($col_shift === 'afternoon' ? 'Afternoon' : 'Morning') . ' Time-Out';
-                if ($existing_att && $hasTime($existing_att[$target_column])) {
+                $target_column = 'logout_time';
+                $target_label = 'Logout';
+                if ($existing_att && $hasTime($existing_att['logout_time'])) {
                     echo json_encode([
                         "status" => "error",
                         "code" => "ALREADY_COMPLETED_SHIFT",
                         "student" => [
                             "full_name" => $student['full_name'],
                             "student_number" => $student['student_number'],
-                            "course_code" => $student['course_code'] ?? 'OJT'
+                            "course_code" => $student['course_code'] ?? 'CIT'
                         ],
-                        "message" => "Already recorded {$target_label} today (" . date("h:i A", strtotime($existing_att[$target_column])) . ")."
+                        "message" => "Already recorded Logout today (" . date("h:i A", strtotime($existing_att['logout_time'])) . ")."
                     ]);
                     exit();
                 }
             } else {
-                // Determine specific cutoff or out-of-window message
                 if ($ev_login && $now_time < $ev_login) {
                     $msg = "Log-in has not started yet. Log-in starts at " . date("g:i A", strtotime($ev_login)) . " for event '{$ev_name}'.";
                 } elseif ($ev_login_cutoff && $ev_logout && $now_time > $ev_login_cutoff && $now_time < $ev_logout) {
@@ -222,36 +210,13 @@ try {
                 exit();
             }
         } else {
-            // Explicit Shift Mode requested by kiosk operator
-            $alias_map = [
-                'morning_in' => 'time_in_morning',
-                'time_in_morning' => 'time_in_morning',
-                'morning_out' => 'time_out_morning',
-                'time_out_morning' => 'time_out_morning',
-                'afternoon_in' => 'time_in_afternoon',
-                'time_in_afternoon' => 'time_in_afternoon',
-                'afternoon_out' => 'time_out_afternoon',
-                'time_out_afternoon' => 'time_out_afternoon'
-            ];
-
+            // Explicit Mode requested: Login or Logout
             $shift_key = strtolower($shift_mode);
-            if (!isset($alias_map[$shift_key])) {
-                echo json_encode([
-                    "status" => "error",
-                    "code" => "INVALID_SHIFT",
-                    "message" => "Invalid shift mode specified: " . htmlspecialchars($shift_mode)
-                ]);
-                exit();
-            }
+            $is_logout = (strpos($shift_key, 'out') !== false || strpos($shift_key, 'logout') !== false);
+            $target_column = $is_logout ? 'logout_time' : 'login_time';
+            $target_label = $is_logout ? 'Logout' : 'Login';
 
-            $target_column = $alias_map[$shift_key];
-            $target_label = $shift_labels[$target_column];
-
-            // Validate cutoff in explicit mode
-            $is_expl_login = (strpos($target_column, 'in') !== false);
-            $is_expl_logout = (strpos($target_column, 'out') !== false);
-
-            if ($is_expl_login) {
+            if (!$is_logout) {
                 if ($ev_login && $now_time < $ev_login) {
                     echo json_encode([
                         "status" => "error",
@@ -268,7 +233,15 @@ try {
                     ]);
                     exit();
                 }
-            } elseif ($is_expl_logout) {
+                if ($existing_att && $hasTime($existing_att['login_time'])) {
+                    echo json_encode([
+                        "status" => "error",
+                        "code" => "DUPLICATE_TIME_IN",
+                        "message" => "Already recorded Login today (" . date("h:i A", strtotime($existing_att['login_time'])) . ")."
+                    ]);
+                    exit();
+                }
+            } else {
                 if ($ev_logout && $now_time < $ev_logout) {
                     echo json_encode([
                         "status" => "error",
@@ -285,58 +258,19 @@ try {
                     ]);
                     exit();
                 }
-            }
-
-            // Validation for explicit shift
-            if ($target_column === 'time_in_morning') {
-                if ($existing_att && $hasTime($existing_att['time_in_morning'])) {
-                    echo json_encode([
-                        "status" => "error",
-                        "code" => "DUPLICATE_TIME_IN",
-                        "message" => "Already recorded Morning Time-In today (" . date("h:i A", strtotime($existing_att['time_in_morning'])) . ")."
-                    ]);
-                    exit();
-                }
-            } elseif ($target_column === 'time_out_morning') {
-                if (!$existing_att || !$hasTime($existing_att['time_in_morning'])) {
+                if (!$existing_att || !$hasTime($existing_att['login_time'])) {
                     echo json_encode([
                         "status" => "error",
                         "code" => "MISSING_TIME_IN",
-                        "message" => "Cannot record Morning Time-Out without a Morning Time-In record."
+                        "message" => "Cannot record Logout without a Login record."
                     ]);
                     exit();
                 }
-                if ($hasTime($existing_att['time_out_morning'])) {
+                if ($hasTime($existing_att['logout_time'])) {
                     echo json_encode([
                         "status" => "error",
                         "code" => "DUPLICATE_TIME_OUT",
-                        "message" => "Already recorded Morning Time-Out today (" . date("h:i A", strtotime($existing_att['time_out_morning'])) . ")."
-                    ]);
-                    exit();
-                }
-            } elseif ($target_column === 'time_in_afternoon') {
-                if ($existing_att && $hasTime($existing_att['time_in_afternoon'])) {
-                    echo json_encode([
-                        "status" => "error",
-                        "code" => "DUPLICATE_TIME_IN",
-                        "message" => "Already recorded Afternoon Time-In today (" . date("h:i A", strtotime($existing_att['time_in_afternoon'])) . ")."
-                    ]);
-                    exit();
-                }
-            } elseif ($target_column === 'time_out_afternoon') {
-                if (!$existing_att || !$hasTime($existing_att['time_in_afternoon'])) {
-                    echo json_encode([
-                        "status" => "error",
-                        "code" => "MISSING_TIME_IN",
-                        "message" => "Cannot record Afternoon Time-Out without an Afternoon Time-In record."
-                    ]);
-                    exit();
-                }
-                if ($hasTime($existing_att['time_out_afternoon'])) {
-                    echo json_encode([
-                        "status" => "error",
-                        "code" => "DUPLICATE_TIME_OUT",
-                        "message" => "Already recorded Afternoon Time-Out today (" . date("h:i A", strtotime($existing_att['time_out_afternoon'])) . ")."
+                        "message" => "Already recorded Logout today (" . date("h:i A", strtotime($existing_att['logout_time'])) . ")."
                     ]);
                     exit();
                 }
@@ -344,7 +278,6 @@ try {
         }
 
         // 4. Save Attendance Record
-        $is_morning = (strpos($target_column, 'morning') !== false);
         $tap_remark = "ID Tap Kiosk ($target_label @ " . date("h:i A", strtotime($now_time)) . ")";
 
         if ($existing_att) {
@@ -352,27 +285,18 @@ try {
             $prev_remarks = trim($existing_att['remarks'] ?? '');
             $new_remarks = !empty($prev_remarks) ? ($prev_remarks . " | " . $tap_remark) : $tap_remark;
 
-            if ($is_morning) {
-                $stmt_upd = $conn->prepare("
-                    UPDATE attendance
-                    SET $target_column = ?, site_id = COALESCE(site_id, ?), status = 'Pending', morning_status = 'Pending', remarks = ?
-                    WHERE attendance_id = ?
-                ");
-                $stmt_upd->bind_param("sisi", $now_time, $active_site_id, $new_remarks, $att_id);
-            } else {
-                $stmt_upd = $conn->prepare("
-                    UPDATE attendance
-                    SET $target_column = ?, site_id = COALESCE(site_id, ?), status = 'Pending', afternoon_status = 'Pending', remarks = ?
-                    WHERE attendance_id = ?
-                ");
-                $stmt_upd->bind_param("sisi", $now_time, $active_site_id, $new_remarks, $att_id);
-            }
+            $stmt_upd = $conn->prepare("
+                UPDATE attendance
+                SET $target_column = ?, site_id = COALESCE(site_id, ?), status = 'Pending', remarks = ?
+                WHERE attendance_id = ?
+            ");
+            $stmt_upd->bind_param("sisi", $now_time, $active_site_id, $new_remarks, $att_id);
             $stmt_upd->execute();
             $stmt_upd->close();
         } else {
             $stmt_ins = $conn->prepare("
-                INSERT INTO attendance (date, student_id, ojt_id, site_id, $target_column, status, morning_status, afternoon_status, remarks)
-                VALUES (?, ?, ?, ?, ?, 'Pending', 'Pending', 'Pending', ?)
+                INSERT INTO attendance (date, student_id, ojt_id, site_id, $target_column, status, remarks)
+                VALUES (?, ?, ?, ?, ?, 'Pending', ?)
             ");
             $stmt_ins->bind_param("siiiss", $today, $student_id, $student_id, $active_site_id, $now_time, $tap_remark);
             $stmt_ins->execute();
@@ -380,34 +304,23 @@ try {
             $stmt_ins->close();
         }
 
-        // Synchronize ID Tap attendance to CIT Department System (Pending Dean Review - NOT Present)
+        // Synchronize ID Tap attendance to CIT Department System
         try {
             require_once __DIR__ . '/cit_sync_helper.php';
             syncAttendanceToCitSystem($conn, $ojt_id, $target_column, $today, $now_time, false);
         } catch (Throwable $eSync) {
-            // Suppress sync error to avoid breaking kiosk response
+            // Suppress sync error
         }
 
-        // 5. Calculate cumulative completed hours for the student
+        // 5. Total event days for student
         $rendered_hours = 0.0;
-        $stmt_hours = $conn->prepare("
-            SELECT time_in_morning, time_out_morning, time_in_afternoon, time_out_afternoon, morning_status, afternoon_status
-            FROM attendance
-            WHERE ojt_id = ? AND (morning_status != 'Rejected' OR afternoon_status != 'Rejected')
-        ");
+        $stmt_hours = $conn->prepare("SELECT COUNT(DISTINCT date) as total_days FROM attendance WHERE (ojt_id = ? OR student_id = ?) AND (status IS NULL OR status != 'Rejected')");
         if ($stmt_hours) {
-            $stmt_hours->bind_param("i", $ojt_id);
+            $stmt_hours->bind_param("ii", $ojt_id, $ojt_id);
             $stmt_hours->execute();
             $res_hours = $stmt_hours->get_result();
-            while ($row_h = $res_hours->fetch_assoc()) {
-                if ($hasTime($row_h['time_in_morning']) && $hasTime($row_h['time_out_morning']) && $row_h['morning_status'] !== 'Rejected') {
-                    $diff = strtotime($row_h['time_out_morning']) - strtotime($row_h['time_in_morning']);
-                    if ($diff > 0) $rendered_hours += ($diff / 3600);
-                }
-                if ($hasTime($row_h['time_in_afternoon']) && $hasTime($row_h['time_out_afternoon']) && $row_h['afternoon_status'] !== 'Rejected') {
-                    $diff = strtotime($row_h['time_out_afternoon']) - strtotime($row_h['time_in_afternoon']);
-                    if ($diff > 0) $rendered_hours += ($diff / 3600);
-                }
+            if ($row_h = $res_hours->fetch_assoc()) {
+                $rendered_hours = floatval($row_h['total_days'] ?? 0);
             }
             $stmt_hours->close();
         }

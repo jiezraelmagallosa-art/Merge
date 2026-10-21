@@ -27,16 +27,10 @@ try {
     $sql = "SELECT DISTINCT
                 a.attendance_id,
                 a.date,
-                a.time_in_morning,
-                a.time_out_morning,
-                a.time_in_afternoon,
-                a.time_out_afternoon,
+                a.login_time,
+                a.logout_time,
                 a.status AS attendance_status,
                 a.remarks AS attendance_remarks,
-                a.morning_status,
-                a.morning_remarks,
-                a.afternoon_status,
-                a.afternoon_remarks,
                 s.student_id,
                 s.student_number,
                 s.full_name,
@@ -95,57 +89,38 @@ try {
                 $status = "Pending";
             }
 
-            $m_in = !empty($row['time_in_morning']) ? date("h:i A", strtotime($row['time_in_morning'])) : '--:--';
-            $m_out = (!empty($row['time_out_morning']) && (empty($row['time_in_morning']) || strtotime($row['time_out_morning']) > strtotime($row['time_in_morning'])))
-                ? date("h:i A", strtotime($row['time_out_morning']))
-                : '--:--';
+            $login_str = !empty($row['login_time']) ? date("h:i A", strtotime($row['login_time'])) : '--:--';
+            $logout_str = !empty($row['logout_time']) ? date("h:i A", strtotime($row['logout_time'])) : '--:--';
 
-            $a_in = !empty($row['time_in_afternoon']) ? date("h:i A", strtotime($row['time_in_afternoon'])) : '--:--';
-            $a_out = (!empty($row['time_out_afternoon']) && (empty($row['time_in_afternoon']) || strtotime($row['time_out_afternoon']) > strtotime($row['time_in_afternoon'])))
-                ? date("h:i A", strtotime($row['time_out_afternoon']))
-                : '--:--';
-
-                $m_remarks = trim(preg_replace('/\s*\/\s*in car/i', '', $row['morning_remarks'] ?? ''));
-                if (!empty($m_in) && !empty($m_out) && $m_in !== '--:--' && $m_out !== '--:--' && ($row['morning_status'] ?? '') === 'Rejected') {
-                    if (strcasecmp($m_remarks, 'Morning Time-Out taken off-site') === 0 || strcasecmp($m_remarks, 'Morning Time-In taken off-site') === 0) {
-                        $m_remarks = 'Morning Shift taken off-site';
-                    }
-                }
-
-                $a_remarks = trim(preg_replace('/\s*\/\s*in car/i', '', $row['afternoon_remarks'] ?? ''));
-                if (!empty($a_in) && !empty($a_out) && $a_in !== '--:--' && $a_out !== '--:--' && ($row['afternoon_status'] ?? '') === 'Rejected') {
-                    if (strcasecmp($a_remarks, 'Afternoon Time-Out taken off-site') === 0 || strcasecmp($a_remarks, 'Afternoon Time-In taken off-site') === 0 || strcasecmp($a_remarks, 'Afternoon photo invalid / off-site') === 0) {
-                        $a_remarks = 'Afternoon Shift taken off-site';
-                    }
-                }
-
-                $has_m_punches = (!empty($row['time_in_morning']) || !empty($row['time_out_morning']));
-                $has_a_punches = (!empty($row['time_in_afternoon']) || !empty($row['time_out_afternoon']));
-
-                $logs[] = [
-                    "attendance_id" => intval($row['attendance_id']),
-                    "student_id" => intval($row['student_id'] ?? 0),
-                    "date" => date("M d, Y", strtotime($row['date'])),
-                    "raw_date" => $row['date'],
-                    "full_name" => $row['full_name'] ?? 'Unknown Student',
-                    "student_number" => $row['student_number'] ?? 'N/A',
-                    "course_code" => $row['course_code'] ?? 'BSIS',
-                    "year_level" => $row['year_level'] ?? '4',
-                    "site_name" => $row['site_name'] ?? 'SBC IT Department',
-                    "time_in_morning" => $m_in,
-                    "time_out_morning" => $m_out,
-                    "time_in_afternoon" => $a_in,
-                    "time_out_afternoon" => $a_out,
-                    "status" => $status,
-                    "remarks" => trim(preg_replace('/\s*\/\s*in car/i', '', $row['attendance_remarks'] ?? '')),
-                    "morning_status" => $has_m_punches ? ($row['morning_status'] ?? 'Pending') : null,
-                    "morning_remarks" => $m_remarks,
-                    "afternoon_status" => $has_a_punches ? ($row['afternoon_status'] ?? 'Pending') : null,
-                    "afternoon_remarks" => $a_remarks,
-                    "is_confirmed" => ($raw_att_status === 'Confirmed'),
-                    "is_rejected" => ($raw_att_status === 'Rejected'),
-                    "photos" => $photos
-                ];
+            $logs[] = [
+                "attendance_id" => intval($row['attendance_id']),
+                "student_id" => intval($row['student_id'] ?? 0),
+                "date" => date("M d, Y", strtotime($row['date'])),
+                "raw_date" => $row['date'],
+                "full_name" => $row['full_name'] ?? 'Unknown Student',
+                "student_number" => $row['student_number'] ?? 'N/A',
+                "course_code" => $row['course_code'] ?? 'BSIS',
+                "year_level" => $row['year_level'] ?? '4',
+                "site_name" => $row['site_name'] ?? 'CIT Campus',
+                "login_time" => $login_str,
+                "logout_time" => $logout_str,
+                // Compatibility aliases
+                "time_in" => $login_str,
+                "time_out" => $logout_str,
+                "time_in_morning" => $login_str,
+                "time_out_morning" => '--:--',
+                "time_in_afternoon" => '--:--',
+                "time_out_afternoon" => $logout_str,
+                "status" => $status,
+                "remarks" => trim($row['attendance_remarks'] ?? ''),
+                "morning_status" => $status,
+                "morning_remarks" => trim($row['attendance_remarks'] ?? ''),
+                "afternoon_status" => $status,
+                "afternoon_remarks" => trim($row['attendance_remarks'] ?? ''),
+                "is_confirmed" => ($raw_att_status === 'Confirmed'),
+                "is_rejected" => ($raw_att_status === 'Rejected'),
+                "photos" => $photos
+            ];
         }
     }
 
