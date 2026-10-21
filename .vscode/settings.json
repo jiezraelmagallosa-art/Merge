@@ -37,6 +37,7 @@
     "editor.guides.indentation": false,
     "editor.guides.bracketPairs": false,
     "editor.guides.highlightActiveIndentation": false,
+    "css.lint.vendorPrefix": "ignore",
     "explorer.fileNesting.enabled": true,
     "explorer.fileNesting.expand": false,
     "explorer.fileNesting.patterns": {
