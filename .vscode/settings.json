@@ -30,8 +30,13 @@
         "**/.pytest_cache": true,
         "**/__pycache__": true,
         "**/*.pyc": true,
-        "**/.dart_tool": true
+        "**/.dart_tool": true,
+        "**/.idea": true
     },
+    "workbench.tree.renderIndentGuides": "none",
+    "editor.guides.indentation": false,
+    "editor.guides.bracketPairs": false,
+    "editor.guides.highlightActiveIndentation": false,
     "explorer.fileNesting.enabled": true,
     "explorer.fileNesting.expand": false,
     "explorer.fileNesting.patterns": {
