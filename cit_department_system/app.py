@@ -1,5 +1,7 @@
+import os
 from app_factory import app
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False)
+    debug_mode = os.getenv("FLASK_DEBUG", "True").lower() in ("true", "1")
+    app.run(host="0.0.0.0", port=5000, debug=debug_mode, use_reloader=debug_mode)

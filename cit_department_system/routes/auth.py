@@ -43,6 +43,7 @@ def student_login():
 
 
 @auth_bp.route("/admin-login", methods=["GET", "POST"])
+@auth_bp.route("/login", methods=["GET", "POST"])
 def admin_login():
     error = None
     if request.method == "POST":
