@@ -2,7 +2,7 @@ import mysql.connector
 from flask import Blueprint, jsonify, redirect, render_template, session
 
 from config import get_db_connection
-from models import attendance_model, event_model, student_model
+from models import attendance_model, event_model, semester_model, student_model
 
 student_bp = Blueprint("student", __name__)
 
@@ -79,38 +79,18 @@ def student_attendance():
 
     exempted_event_ids = event_model.get_exempted_event_ids_for_student(student["id"])
     paper_attendance = event_model.get_paper_attendance_for_student(student["id"])
+    enrolled_semester_ids = semester_model.get_student_semester_ids(student["id"])
     history = []
     for event in event_model.get_all_events():
+        if event.get("semester_id") not in enrolled_semester_ids:
+            continue
         records = records_by_event.get(event["id"], [])
         statuses = {record["status"] for record in records}
         has_login_window = bool(event.get("login_time") or event.get("login_cutoff_time"))
         has_logout_window = bool(event.get("logout_time") or event.get("logout_cutoff_time"))
 
-        # Check SBC Internship Attendance confirmation from Dean
-        event_date_str = str(event.get("date") or event.get("event_date"))
-        dean_sbc_map = attendance_model.get_sbc_dean_attendance_statuses(event_date_str)
-        st_num_key = str(student.get('student_id') or '').strip().lower()
-        rfid_key = str(student.get('rfid_uid') or '').strip().lower()
-        sbc_rec = dean_sbc_map.get(st_num_key) or (dean_sbc_map.get(rfid_key) if rfid_key else None)
-
-        has_sbc_log = sbc_rec is not None
-        sbc_status = (sbc_rec.get('status') or '') if has_sbc_log else ''
-        sbc_m_status = (sbc_rec.get('morning_status') or '') if has_sbc_log else ''
-        sbc_a_status = (sbc_rec.get('afternoon_status') or '') if has_sbc_log else ''
-
-        is_dean_confirmed = has_sbc_log and (sbc_status == 'Confirmed' or sbc_m_status == 'Confirmed' or sbc_a_status == 'Confirmed')
-        is_dean_rejected = has_sbc_log and (sbc_status == 'Rejected' or (sbc_m_status == 'Rejected' and sbc_a_status == 'Rejected'))
-        is_pending_dean = has_sbc_log and not is_dean_confirmed and not is_dean_rejected
-
         if event["id"] in exempted_event_ids:
             status = "Exempted"
-        elif is_pending_dean or (any(st in statuses for st in ('pending', 'pending_review', 'pending_dean')) and not is_dean_confirmed and event["id"] not in paper_attendance):
-            # MANDATORY: DO NOT DISPLAY PRESENT IF NOT CONFIRMED IN DEAN
-            status = "Pending Dean Review"
-        elif is_dean_confirmed:
-            status = "Present"
-        elif is_dean_rejected:
-            status = "Absent"
         elif event["id"] in paper_attendance:
             status = "Present" if paper_attendance[event["id"]] == "present" else "Late"
         elif has_login_window and not has_logout_window:
@@ -119,7 +99,7 @@ def student_attendance():
             status = "Present" if "logout" in statuses else "Absent"
         elif "logout" in statuses and "login" not in statuses:
             status = "Late"
-        elif "login" in statuses:
+        elif "login" in statuses and "logout" in statuses:
             status = "Present"
         else:
             status = "Absent"

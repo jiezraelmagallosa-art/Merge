@@ -1,8 +1,8 @@
-from flask import Blueprint, render_template, request, redirect, url_for, jsonify, current_app
-from models import event_model, attendance_model, student_model
+from flask import Blueprint, flash, render_template, request, redirect, url_for, jsonify, current_app
+from models import event_model, attendance_model, semester_model, student_model
 from config import get_db_connection
 from werkzeug.security import check_password_hash
-from datetime import datetime, date, timedelta, time
+from datetime import datetime, timedelta, time
 from .admin import require_admin
 
 events_bp = Blueprint(
@@ -19,8 +19,51 @@ def parse_time(value):
 @events_bp.route('/events', methods=['GET'])
 @require_admin
 def events_list():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+        """
+        SELECT id, academic_year, semester, fund_amount, is_active
+        FROM school_terms
+        ORDER BY academic_year DESC,
+                 CASE semester
+                     WHEN '1st Semester' THEN 1
+                     WHEN '2nd Semester' THEN 2
+                     ELSE 3
+                 END,
+                 semester
+        """
+    )
+    semesters = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    active_semester = next(
+        (semester for semester in semesters if semester['is_active']),
+        None,
+    )
+    requested_semester_id = request.args.get('semester_id', type=int)
+    selected_semester = next(
+        (semester for semester in semesters if semester['id'] == requested_semester_id),
+        active_semester,
+    )
     events = event_model.get_all_events()
-    return render_template('admin/events.html', events=events)
+    if selected_semester:
+        events = [
+            event for event in events
+            if event.get('semester_id') == selected_semester['id']
+        ]
+    else:
+        events = []
+
+    return render_template(
+        'admin/events.html',
+        events=events,
+        active_semester=active_semester,
+        semesters=semesters,
+        selected_semester=selected_semester,
+        selected_semester_id=selected_semester['id'] if selected_semester else '',
+    )
 
 
 @events_bp.route('/events/<int:event_id>/exemptions', methods=['GET', 'POST'])
@@ -47,7 +90,11 @@ def event_exemptions(event_id):
         event_model.sync_fines_for_event(event)
         return jsonify({'success': True, 'count': len(resolved_ids)})
 
-    students = student_model.get_all_students()
+    enrolled_student_ids = semester_model.get_semester_student_ids(event.get('semester_id'))
+    students = [
+        student for student in student_model.get_all_students()
+        if student.get('id') in enrolled_student_ids
+    ]
     for student in students:
         student['display_name'] = f"{student.get('lastname', '')}, {student.get('firstname', '')}".strip(', ')
     exempted_student_ids = event_model.get_event_exemption_ids(event_id)
@@ -139,18 +186,21 @@ def create_event():
         if logout_dt:
             logout_cutoff_time = (logout_dt + timedelta(minutes=grace_period)).strftime("%H:%M")
 
-    event_model.add_event(
-        name,
-        date,
-        login_time,
-        logout_time,
-        login_cutoff_time,
-        logout_cutoff_time,
-        absent_fine,
-        late_fine,
-        grace_period,
-        is_active,
-    )
+    try:
+        event_model.add_event(
+            name,
+            date,
+            login_time,
+            logout_time,
+            login_cutoff_time,
+            logout_cutoff_time,
+            absent_fine,
+            late_fine,
+            grace_period,
+            is_active,
+        )
+    except ValueError as error:
+        flash(str(error), 'danger')
 
     return redirect(url_for('events.events_list'))
 
@@ -192,7 +242,10 @@ def edit_event(event_id):
         grace_period,
     )
 
-    return redirect(url_for('events.events_list'))
+    return redirect(url_for(
+        'events.events_list',
+        semester_id=request.form.get('return_semester_id') or None,
+    ))
 
 
 @events_bp.route('/events/<int:event_id>/delete', methods=['POST'])
@@ -203,26 +256,23 @@ def delete_event(event_id):
 
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM admins WHERE LOWER(username)=LOWER(%s)", (username,))
+    cursor.execute("SELECT * FROM admins WHERE username=%s", (username,))
     admin = cursor.fetchone()
     cursor.close()
     conn.close()
 
-    pw_ok = False
-    if admin:
-        admin_pw = admin.get('password', '')
-        try:
-            pw_ok = check_password_hash(admin_pw, password)
-        except Exception:
-            pass
-        if not pw_ok and (password in ('admin123', 'admin', 'password') or password == admin_pw):
-            pw_ok = True
-
-    if not pw_ok:
-        return redirect(url_for('events.events_list', delete_error='invalid'))
+    if not admin or not check_password_hash(admin.get('password', ''), password):
+        return redirect(url_for(
+            'events.events_list',
+            semester_id=request.form.get('return_semester_id') or None,
+            delete_error='invalid',
+        ))
 
     event_model.delete_event(event_id)
-    return redirect(url_for('events.events_list'))
+    return redirect(url_for(
+        'events.events_list',
+        semester_id=request.form.get('return_semester_id') or None,
+    ))
 
 
 def format_time_value(time_value):
@@ -251,17 +301,7 @@ def format_time_range(start, end):
 def format_attendance_time(timestamp_value):
     if not timestamp_value:
         return None
-    from datetime import datetime, timedelta
-    if isinstance(timestamp_value, timedelta):
-        total_seconds = int(timestamp_value.total_seconds())
-        hours = (total_seconds // 3600) % 24
-        minutes = (total_seconds % 3600) // 60
-        seconds = total_seconds % 60
-        period = "AM" if hours < 12 else "PM"
-        display_h = hours % 12
-        if display_h == 0:
-            display_h = 12
-        return f"{display_h}:{minutes:02d}:{seconds:02d} {period}"
+    from datetime import datetime
     if isinstance(timestamp_value, str):
         try:
             # Try common datetime formats
@@ -273,14 +313,14 @@ def format_attendance_time(timestamp_value):
                     parsed = None
                     continue
             if not parsed:
-                return timestamp_value
+                return None
             timestamp_value = parsed
         except Exception:
-            return timestamp_value
+            return None
     if isinstance(timestamp_value, datetime):
         text = timestamp_value.strftime('%I:%M:%S %p')
         return text.lstrip('0') or '0'
-    return str(timestamp_value)
+    return None
 
 
 @events_bp.route('/events/<int:event_id>/conduct', methods=['GET'])
@@ -293,31 +333,12 @@ def conduct_event(event_id):
     return render_template('admin/conduct_attendance.html', event=event)
 
 
-def format_academic_year(date_value):
-    if isinstance(date_value, str):
-        try:
-            date_value = datetime.strptime(date_value, "%Y-%m-%d").date()
-        except Exception:
-            return None
-    if isinstance(date_value, datetime):
-        date_value = date_value.date()
-    if not isinstance(date_value, date):
-        return None
-
-    if date_value.month >= 7:
-        return f"{date_value.year}-{date_value.year + 1}"
-    return f"{date_value.year - 1}-{date_value.year}"
-
-
 def build_attendance_rows(event, students, course=None, year_level=None):
+    enrolled_student_ids = semester_model.get_semester_student_ids(event.get('semester_id'))
+    students = [student for student in students if student.get('id') in enrolled_student_ids]
     attendance_records = attendance_model.get_attendance_by_event(event['id'])
     exempted_student_ids = event_model.get_event_exemption_ids(event['id'])
     paper_attendance = event_model.get_paper_attendance_for_event(event['id'])
-    
-    # Query Dean verification statuses from SBC Internship Attendance System for this event's date
-    event_date_val = event.get('date') or event.get('event_date')
-    dean_sbc_map = attendance_model.get_sbc_dean_attendance_statuses(event_date_val)
-
     attendance_by_student = {}
     for record in attendance_records:
         attendance_by_student.setdefault(record['student_id'], []).append(record)
@@ -336,71 +357,35 @@ def build_attendance_rows(event, students, course=None, year_level=None):
         student_records = attendance_by_student.get(student['id'], [])
         login_record = next((r for r in student_records if r['status'] == 'login'), None)
         logout_record = next((r for r in student_records if r['status'] == 'logout'), None)
-        pending_cit_record = next((r for r in student_records if r['status'] in ('pending', 'pending_review', 'pending_dean')), None)
-
-        # Match student with SBC Internship Attendance record (by student_id, student_number, id_no, or rfid)
-        st_num_key = str(student.get('student_id') or '').strip().lower()
-        rfid_key = str(student.get('rfid_uid') or '').strip().lower()
-        sbc_rec = dean_sbc_map.get(st_num_key) or (dean_sbc_map.get(rfid_key) if rfid_key else None)
-
-        has_sbc_log = sbc_rec is not None
-        sbc_status = (sbc_rec.get('status') or '') if has_sbc_log else ''
-        sbc_m_status = (sbc_rec.get('morning_status') or '') if has_sbc_log else ''
-        sbc_a_status = (sbc_rec.get('afternoon_status') or '') if has_sbc_log else ''
-
-        # Evaluate Dean confirmation strictly from the Dean of the SBC system
-        is_dean_confirmed = has_sbc_log and (sbc_status == 'Confirmed' or sbc_m_status == 'Confirmed' or sbc_a_status == 'Confirmed')
-        is_dean_rejected = has_sbc_log and (sbc_status == 'Rejected' or (sbc_m_status == 'Rejected' and sbc_a_status == 'Rejected'))
-        is_pending_dean = has_sbc_log and not is_dean_confirmed and not is_dean_rejected
-
-        # Paper attendance override
-        paper_status = paper_attendance.get(student['id'])
 
         if student['id'] in exempted_student_ids:
             status = 'Exempted'
             source = 'Exemption'
-        elif is_pending_dean or (pending_cit_record and not is_dean_confirmed and not paper_status):
-            # MANDATORY RULE: DO NOT DISPLAY PRESENT IF NOT CONFIRMED IN DEAN OF SBC SYSTEM
-            status = 'Pending Dean Review'
-            source = 'Awaiting Dean Review'
-        elif is_dean_confirmed:
-            # Verified and confirmed by Dean of SBC
-            status = 'Present'
-            source = 'Dean Confirmed'
-        elif is_dean_rejected:
-            # Explicitly rejected by Dean of SBC
-            status = 'Absent'
-            source = 'Dean Rejected'
-        elif paper_status:
-            status = 'Present' if paper_status == 'present' else 'Late'
+        elif student['id'] in paper_attendance:
+            status = 'Present' if paper_attendance[student['id']] == 'present' else 'Late'
             source = 'Paper'
-        elif login_record and login_record.get('status') == 'login':
-            status = 'Present'
-            source = 'Live Capture'
-        elif logout_record and not login_record:
-            status = 'Late'
-            source = 'System'
+        elif has_login_window and not has_logout_window:
+            # Login-only event: Present if has login
+            status = 'Present' if login_record else 'Absent'
+            source = 'System' if login_record else 'Not recorded'
+        elif has_logout_window and not has_login_window:
+            # Logout-only event: Present if has logout
+            status = 'Present' if logout_record else 'Absent'
+            source = 'System' if logout_record else 'Not recorded'
         else:
-            status = 'Absent'
-            source = 'Not recorded'
+            # Two-window event: need both or determine based on records
+            if logout_record and not login_record:
+                status = 'Late'
+            elif login_record and not logout_record:
+                status = 'Absent'
+            elif not login_record and not logout_record:
+                status = 'Absent'
+            else:
+                status = 'Present'
+            source = 'System' if login_record or logout_record else 'Not recorded'
 
-        # Resolve login & logout time texts accurately
-        login_time_text = None
-        logout_time_text = None
-
-        if login_record and login_record.get('timestamp'):
-            login_time_text = format_attendance_time(login_record['timestamp'])
-        elif has_sbc_log:
-            sbc_in = sbc_rec.get('time_in_morning') or sbc_rec.get('time_in_afternoon')
-            if sbc_in:
-                login_time_text = format_attendance_time(sbc_in)
-
-        if logout_record and logout_record.get('timestamp'):
-            logout_time_text = format_attendance_time(logout_record['timestamp'])
-        elif has_sbc_log:
-            sbc_out = sbc_rec.get('time_out_afternoon') or sbc_rec.get('time_out_morning')
-            if sbc_out:
-                logout_time_text = format_attendance_time(sbc_out)
+        login_time_text = format_attendance_time(login_record['timestamp']) if login_record else None
+        logout_time_text = format_attendance_time(logout_record['timestamp']) if logout_record else None
 
         rows.append({
             'student_id': student['id'],
@@ -412,7 +397,7 @@ def build_attendance_rows(event, students, course=None, year_level=None):
             'source': source,
             'login_time': login_time_text,
             'logout_time': logout_time_text,
-            'event_name': event.get('name') or event.get('event_name'),
+            'event_name': event['name'],
         })
 
     rows.sort(key=lambda row: (row['lastname'] or '', row['firstname'] or ''))
@@ -422,17 +407,47 @@ def build_attendance_rows(event, students, course=None, year_level=None):
 @events_bp.route('/attendance', methods=['GET'])
 @require_admin
 def attendance_page():
-    academic_year = request.args.get('academic_year')
+    academic_year = request.args.get('academic_year', '').strip()
+    semester = request.args.get('semester', '').strip()
 
     students = student_model.get_all_students()
     events = event_model.get_all_events()
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+        """
+        SELECT academic_year, semester
+        FROM school_terms
+        ORDER BY academic_year DESC,
+                 CASE semester
+                     WHEN '1st Semester' THEN 1
+                     WHEN '2nd Semester' THEN 2
+                     ELSE 3
+                 END,
+                 semester
+        """
+    )
+    terms = cursor.fetchall()
+    cursor.close()
+    conn.close()
 
     # derive distinct course list and year levels from students
     courses = sorted({s['course'] for s in students if s.get('course')})
     year_levels = sorted({s['year_level'] for s in students if s.get('year_level')})
 
-    academic_years = sorted({format_academic_year(ev['date']) for ev in events if format_academic_year(ev['date'])}, reverse=True)
-    filtered_events = [ev for ev in events if not academic_year or format_academic_year(ev['date']) == academic_year]
+    academic_years = sorted({term['academic_year'] for term in terms}, reverse=True)
+    available_semesters = {
+        term['semester'] for term in terms if term['academic_year'] == academic_year
+    }
+    if semester not in available_semesters:
+        semester = ''
+
+    filtered_events = [
+        event for event in events
+        if (not academic_year or event.get('academic_year') == academic_year)
+        and (not semester or event.get('semester_name') == semester)
+    ]
 
     return render_template(
         'admin/attendance.html',
@@ -441,6 +456,8 @@ def attendance_page():
         events=filtered_events,
         academic_years=academic_years,
         selected_academic_year=academic_year,
+        terms=terms,
+        selected_semester=semester,
     )
 
 
@@ -481,6 +498,8 @@ def update_paper_attendance(event_id):
     student = student_model.get_student(student_id)
     if not student:
         return jsonify({'success': False, 'message': 'Student not found'}), 404
+    if not semester_model.is_student_enrolled_in_semester(event.get('semester_id'), student_id):
+        return jsonify({'success': False, 'message': 'Student is not currently enrolled in this event semester.'}), 409
 
     status = (data.get('status') or '').lower()
     try:
@@ -647,26 +666,14 @@ def record_rfid():
     student = student_model.get_student_by_rfid(rfid_uid)
     if not student:
         return jsonify({'success': False, 'message': 'RFID not registered'}), 404
+    if not semester_model.is_student_enrolled_in_semester(event.get('semester_id'), student['id']):
+        return jsonify({
+            'success': False,
+            'message': 'Student is not enrolled in this event semester.',
+        }), 403
 
     now = datetime.now()
     event_date = event.get('date')
-    event_date_parsed = None
-    if isinstance(event_date, str):
-        try:
-            event_date_parsed = datetime.strptime(event_date, "%Y-%m-%d").date()
-        except Exception:
-            event_date_parsed = None
-    elif isinstance(event_date, datetime):
-        event_date_parsed = event_date.date()
-    elif isinstance(event_date, date):
-        event_date_parsed = event_date
-
-    if event_date_parsed and event_date_parsed != now.date():
-        return jsonify({
-            'success': False,
-            'message': f"Cannot record attendance. This event is scheduled for {event_date_parsed.strftime('%B %d, %Y')}, not today ({now.strftime('%B %d, %Y')})."
-        }), 400
-
     login_time = event.get('login_time')
     logout_time = event.get('logout_time')
     login_cutoff = event.get('login_cutoff_time')
@@ -731,14 +738,12 @@ def record_rfid():
         status = 'logout'
     else:
         if login_start and now < login_start:
-            return jsonify({'success': False, 'message': f'Log-in has not started yet. Log-in starts at {login_start.strftime("%I:%M %p")}.'}), 400
-        if login_end and logout_start and login_end < now < logout_start:
-            return jsonify({'success': False, 'message': f'Log-in cutoff reached ({login_end.strftime("%I:%M %p")}). Log-in is closed. Log-out starts at {logout_start.strftime("%I:%M %p")}.'}), 400
+            return jsonify({'success': False, 'message': 'Event has not started yet. Please wait until login time.'}), 400
         if logout_end and now > logout_end:
-            return jsonify({'success': False, 'message': f'Log-out cutoff reached ({logout_end.strftime("%I:%M %p")}). Event attendance is closed.'}), 400
-        if login_end and not logout_start and now > login_end:
-            return jsonify({'success': False, 'message': f'Log-in cutoff reached ({login_end.strftime("%I:%M %p")}). Log-in is closed.'}), 400
-        return jsonify({'success': False, 'message': 'Attendance cutoff reached or window is currently closed.'}), 400
+            return jsonify({'success': False, 'message': 'Event is already closed.'}), 400
+        if login_end and logout_start and login_end < now < logout_start:
+            return jsonify({'success': False, 'message': 'Attendance window is not open. Please wait until logout time.'}), 400
+        return jsonify({'success': False, 'message': 'Unable to determine tap period. Please contact the administrator.'}), 400
 
     if attendance_model.attendance_exists(event_id, student['id'], status):
         verb = 'in' if status == 'login' else 'out'

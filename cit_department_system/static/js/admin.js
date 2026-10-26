@@ -58,6 +58,7 @@ if (paymentsChart) {
 }
 
 let currentStudent = null;
+let balanceRequestVersion = 0;
 let studentTapModal = null;
 let paymentModal = null;
 let receiptPreviewModal = null;
@@ -66,6 +67,17 @@ let pendingReceipt = null;
 let refreshAfterPrint = false;
 let transactionToDelete = null;
 let selectedThermalPrinter = '';
+
+function printReport(reportType) {
+    const cleanup = () => {
+        delete document.body.dataset.printReport;
+        window.removeEventListener('afterprint', cleanup);
+    };
+
+    document.body.dataset.printReport = reportType;
+    window.addEventListener('afterprint', cleanup);
+    window.print();
+}
 
 document.addEventListener('DOMContentLoaded', function() {
     const studentTapModalElement = document.getElementById('studentTapModal');
@@ -158,7 +170,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         printTransactionReportButton.addEventListener('click', () => {
             if (!transactionReportPreview.childElementCount) return;
-            window.print();
+            printReport('transaction');
         });
     }
     if (transactionReportModalElement) {
@@ -202,7 +214,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         printBalanceReportButton.addEventListener('click', () => {
             if (!balanceReportPreview.childElementCount) return;
-            window.print();
+            printReport('balance');
         });
     }
     if (balanceReportModalElement) {
@@ -257,6 +269,27 @@ function openStudentTapModal() {
 
 function openPaymentModal() {
     if (paymentModal) paymentModal.show();
+}
+
+function openPaymentForStudent(data, sourceModalElement) {
+    const paymentForm = document.getElementById('paymentForm');
+    const amountField = document.getElementById('amount');
+    const maxAmount = document.getElementById('maxAmount');
+    if (!paymentModal || !paymentForm || !amountField || !maxAmount) {
+        throw new Error('The payment form is unavailable.');
+    }
+
+    currentStudent = data;
+    balanceRequestVersion += 1;
+    paymentForm.reset();
+    amountField.disabled = false;
+    maxAmount.textContent = '';
+    setPaymentStudent(data);
+
+    sourceModalElement.addEventListener('hidden.bs.modal', function() {
+        paymentModal.show();
+    }, {once: true});
+    bootstrap.Modal.getOrCreateInstance(sourceModalElement).hide();
 }
 
 function setThermalPrinterStatus(message, isError = false) {
@@ -366,16 +399,7 @@ async function proceedAttendanceTransaction() {
             throw new Error(data.error || 'Unable to load student balance.');
         }
 
-        currentStudent = data;
-        document.getElementById('paymentForm').reset();
-        document.getElementById('amount').disabled = false;
-        document.getElementById('maxAmount').textContent = '';
-        setPaymentStudent(data);
-
-        attendanceModalElement.addEventListener('hidden.bs.modal', function() {
-            paymentModal.show();
-        }, {once: true});
-        bootstrap.Modal.getOrCreateInstance(attendanceModalElement).hide();
+        openPaymentForStudent(data, attendanceModalElement);
     } catch (error) {
         alert('Error: ' + error.message);
     } finally {
@@ -383,23 +407,52 @@ async function proceedAttendanceTransaction() {
     }
 }
 
-function updateAmountField() {
+async function updateAmountField() {
     const paymentType = document.getElementById('paymentType').value;
     const transactionType = document.getElementById('transactionType').value;
     const amountField = document.getElementById('amount');
 
-    if (paymentType === 'Full' && currentStudent && transactionType) {
-        const amount = transactionType === 'Funds'
-            ? currentStudent.total_funds
-            : currentStudent.total_fines;
-        amountField.value = amount.toFixed(2);
-        amountField.disabled = true;
-        document.getElementById('maxAmount').textContent =
-            `Full amount for ${transactionType}: PHP ${amount.toFixed(2)}`;
-    } else {
+    if (paymentType !== 'Full' || !currentStudent || !transactionType) {
+        balanceRequestVersion += 1;
         amountField.disabled = false;
         amountField.value = '';
         document.getElementById('maxAmount').textContent = '';
+        return;
+    }
+
+    const semesterId = document.getElementById('semesterId').value;
+    if (!semesterId) {
+        amountField.disabled = true;
+        amountField.value = '';
+        document.getElementById('maxAmount').textContent = 'Select a semester to view its balance.';
+        return;
+    }
+
+    const requestVersion = ++balanceRequestVersion;
+    amountField.disabled = true;
+    document.getElementById('maxAmount').textContent = 'Loading semester balance...';
+    try {
+        const studentKey = currentStudent.payment_key || currentStudent.student_id;
+        const response = await fetch(
+            `/api/student-balance/${encodeURIComponent(studentKey)}?semester_id=${encodeURIComponent(semesterId)}`
+        );
+        const balance = await response.json();
+        if (!response.ok || balance.error) {
+            throw new Error(balance.error || 'Unable to load the semester balance.');
+        }
+        if (requestVersion !== balanceRequestVersion) return;
+        const amount = Number(transactionType === 'Funds' ? balance.total_funds : balance.total_fines);
+        amountField.value = amount.toFixed(2);
+        document.getElementById('maxAmount').textContent =
+            `Full ${transactionType} balance for this semester: PHP ${amount.toFixed(2)}`;
+    } catch (error) {
+        if (requestVersion !== balanceRequestVersion) return;
+        amountField.value = '';
+        document.getElementById('maxAmount').textContent = error.message;
+    } finally {
+        if (requestVersion === balanceRequestVersion) {
+            amountField.disabled = false;
+        }
     }
 }
 
@@ -409,16 +462,19 @@ async function submitPayment() {
         return;
     }
 
+    const semesterSelect = document.getElementById('semesterId');
+    const selectedTerm = semesterSelect.options[semesterSelect.selectedIndex];
     const formData = {
         student_id: currentStudent.payment_key || currentStudent.student_id,
         transaction_type: document.getElementById('transactionType').value,
         payment_type: document.getElementById('paymentType').value,
         amount: document.getElementById('amount').value,
-        academic_year: document.getElementById('academicYear').value,
-        semester: document.getElementById('semester').value
+        semester_id: semesterSelect.value,
+        academic_year: selectedTerm?.dataset.academicYear || '',
+        semester: selectedTerm?.dataset.semester || ''
     };
 
-    if (!formData.transaction_type || !formData.payment_type || !formData.amount || !formData.academic_year || !formData.semester) {
+    if (!formData.transaction_type || !formData.payment_type || !formData.amount || !formData.semester_id) {
         alert('Please fill in all fields');
         return;
     }

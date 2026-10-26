@@ -10,7 +10,7 @@ Funds & Fines
     <div>
         <p class="eyebrow">FINANCE</p>
         <h3 class="mb-1">Funds & Fines Overview</h3>
-        <p class="text-muted mb-0">View and manage student fund and fine balances across all courses and academic years.</p>
+        <p class="text-muted mb-0">View student balances for an individual semester or across all recorded semesters.</p>
     </div>
     <div class="page-actions">
         <button type="button" class="btn btn-outline-warning rounded-pill px-4"
@@ -96,6 +96,17 @@ Funds & Fines
                     <option value="">All Years</option>
                     {% for year in year_levels %}
                     <option value="{{ year }}" {% if year|string == selected_year_level|string %}selected{% endif %}>Year {{ year }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="semester-filter">Filter by Semester</label>
+                <select id="semester-filter" name="semester_id" class="form-select" onchange="this.form.submit()">
+                    <option value="">All Semesters</option>
+                    {% for term in terms %}
+                    <option value="{{ term.id }}" {% if term.id|string == selected_semester_id|string %}selected{% endif %}>
+                        {{ term.academic_year }} · {{ term.semester }}
+                    </option>
                     {% endfor %}
                 </select>
             </div>
@@ -224,6 +235,9 @@ Funds & Fines
                 </div>
             </div>
             <div class="modal-footer">
+                <button type="button" class="btn btn-dark me-auto" id="proceedFinanceTransaction" disabled>
+                    Proceed Transaction
+                </button>
                 <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
@@ -661,28 +675,18 @@ Funds & Fines
         margin: 12mm;
     }
 
-    body * {
-        visibility: hidden !important;
-    }
-
+    body[data-print-report="balance"],
+    body[data-print-report="balance"] .wrapper,
+    body[data-print-report="balance"] .main,
+    body[data-print-report="balance"] .content,
     #generateBalanceReportModal,
-    #generateBalanceReportModal * {
-        visibility: visible !important;
-    }
-
-    #generateBalanceReportModal {
-        position: absolute !important;
-        inset: 0 auto auto 0 !important;
-        display: block !important;
-        height: auto !important;
-        overflow: visible !important;
-    }
-
     #generateBalanceReportModal .modal-dialog,
     #generateBalanceReportModal .modal-content,
     #generateBalanceReportModal .modal-body {
+        display: block !important;
         width: 100% !important;
         max-width: none !important;
+        min-height: 0 !important;
         max-height: none !important;
         height: auto !important;
         margin: 0 !important;
@@ -693,6 +697,19 @@ Funds & Fines
         color: #111 !important;
         box-shadow: none !important;
         overflow: visible !important;
+    }
+
+    body[data-print-report="balance"] .sidebar,
+    body[data-print-report="balance"] .topbar,
+    body[data-print-report="balance"] .content > *:not(#generateBalanceReportModal) {
+        display: none !important;
+    }
+
+    #generateBalanceReportModal {
+        position: static !important;
+        inset: auto !important;
+        opacity: 1 !important;
+        transform: none !important;
     }
 
     #generateBalanceReportModal .modal-header,
@@ -730,9 +747,6 @@ Funds & Fines
         display: table-header-group;
     }
 
-    .balance-report-table tr {
-        break-inside: avoid;
-    }
 }
 </style>
 
@@ -748,11 +762,17 @@ function openQrModal() {
     if (studentInfo) {
         studentInfo.style.display = 'none';
     }
+    scannedStudentBalance = null;
+    if (proceedFinanceTransactionButton) {
+        proceedFinanceTransactionButton.disabled = true;
+    }
     modal.show();
 }
 
 const studentIdInput = document.getElementById('studentIdInput');
 const qrModalElement = document.getElementById('qrModal');
+const proceedFinanceTransactionButton = document.getElementById('proceedFinanceTransaction');
+let scannedStudentBalance = null;
 let scanTimer = null;
 const SCAN_TIMEOUT_MS = 250;
 
@@ -776,6 +796,11 @@ if (studentIdInput) {
     });
 
     studentIdInput.addEventListener('input', function() {
+        scannedStudentBalance = null;
+        if (proceedFinanceTransactionButton) {
+            proceedFinanceTransactionButton.disabled = true;
+        }
+        document.getElementById('studentInfo').style.display = 'none';
         if (scanTimer) {
             clearTimeout(scanTimer);
         }
@@ -798,7 +823,9 @@ if (studentIdInput) {
 }
 
 function fetchStudentBalance(studentId) {
-    fetch(`/api/student-balance/${studentId}`)
+    const semesterId = {{ selected_semester_id|tojson }};
+    const semesterQuery = semesterId ? `?semester_id=${encodeURIComponent(semesterId)}` : '';
+    fetch(`/api/student-balance/${encodeURIComponent(studentId)}${semesterQuery}`)
         .then(response => {
             if (!response.ok) throw new Error('Student not found');
             return response.json();
@@ -815,13 +842,30 @@ function fetchStudentBalance(studentId) {
 }
 
 function displayStudentInfo(data) {
+    scannedStudentBalance = data;
     document.getElementById('infoName').textContent = `${data.firstname} ${data.lastname}`;
     document.getElementById('infoCourse').textContent = data.course;
     document.getElementById('infoFunds').textContent = `PHP ${parseFloat(data.total_funds).toFixed(2)}`;
     document.getElementById('infoFines').textContent = `PHP ${parseFloat(data.total_fines).toFixed(2)}`;
     document.getElementById('infoTotal').textContent = `PHP ${parseFloat(data.total_balance).toFixed(2)}`;
     document.getElementById('studentInfo').style.display = 'block';
+    if (proceedFinanceTransactionButton) {
+        proceedFinanceTransactionButton.disabled = false;
+    }
 }
+
+proceedFinanceTransactionButton?.addEventListener('click', function() {
+    if (!scannedStudentBalance || !qrModalElement) {
+        alert('Scan a student ID before proceeding.');
+        return;
+    }
+
+    try {
+        openPaymentForStudent(scannedStudentBalance, qrModalElement);
+    } catch (error) {
+        alert('Unable to open the payment form: ' + error.message);
+    }
+});
 
 function selectStudent(studentId) {
     // Highlight the row and show details

@@ -13,14 +13,16 @@ def ensure_attendance_table():
 	cursor = conn.cursor()
 	cursor.execute(
 		"""
-		CREATE TABLE IF NOT EXISTS cit_attendance (
+		CREATE TABLE IF NOT EXISTS attendance (
 			id INT AUTO_INCREMENT PRIMARY KEY,
 			event_id INT NOT NULL,
+			semester_id INT NULL,
 			student_id INT NOT NULL,
 			status VARCHAR(32) NOT NULL,
 			timestamp DATETIME NOT NULL,
 			INDEX (event_id),
-			INDEX (student_id)
+			INDEX (student_id),
+			INDEX idx_attendance_semester (semester_id)
 		)
 		"""
 	)
@@ -36,10 +38,12 @@ def record_attendance(event_id, student_id, status, timestamp):
 	cursor = conn.cursor()
 	cursor.execute(
 		"""
-		INSERT INTO cit_attendance (event_id, student_id, status, timestamp)
-		VALUES (%s,%s,%s,%s)
+		INSERT INTO attendance (event_id, semester_id, student_id, status, timestamp)
+		SELECT event_id, semester_id, %s, %s, %s
+		FROM events
+		WHERE event_id=%s
 		""",
-		(event_id, student_id, status, timestamp)
+		(student_id, status, timestamp, event_id)
 	)
 	conn.commit()
 	conn.close()
@@ -52,7 +56,7 @@ def attendance_exists(event_id, student_id, status):
 	cursor.execute(
 		"""
 		SELECT 1
-		FROM cit_attendance
+		FROM attendance
 		WHERE event_id=%s AND student_id=%s AND status=%s
 		LIMIT 1
 		""",
@@ -70,7 +74,7 @@ def get_attendance_by_event(event_id):
 	cursor.execute(
 		"""
 		SELECT a.*, s.firstname, s.lastname, s.course, s.year_level
-		FROM cit_attendance a
+		FROM attendance a
 		JOIN students s ON s.id=a.student_id
 		WHERE a.event_id=%s
 		ORDER BY a.timestamp DESC
@@ -89,7 +93,7 @@ def get_attendance_for_student(student_id):
 	cursor.execute(
 		"""
 		SELECT a.*, e.event_name as event_name, e.event_date as event_date
-		FROM cit_attendance a
+		FROM attendance a
 		JOIN events e ON e.event_id=a.event_id
 		WHERE a.student_id=%s
 		ORDER BY e.event_date DESC
@@ -107,7 +111,7 @@ def get_attendance(course=None, year_level=None, event_id=None):
 	cursor = conn.cursor(dictionary=True)
 	base = """
 		SELECT a.*, s.firstname, s.lastname, s.course, s.year_level, e.event_name as event_name, e.event_date as event_date
-		FROM cit_attendance a
+		FROM attendance a
 		JOIN students s ON s.id=a.student_id
 		LEFT JOIN events e ON e.event_id=a.event_id
 	"""
@@ -132,58 +136,3 @@ def get_attendance(course=None, year_level=None, event_id=None):
 	rows = cursor.fetchall()
 	conn.close()
 	return rows
-
-
-def get_sbc_dean_attendance_statuses(event_date):
-	"""
-	Fetches attendance logs and Dean verification status from SBC Internship Attendance System
-	for a given event date.
-	Returns a dictionary indexed by student_number, id_no, rfid_uid, and student_id.
-	Used by CIT Department System to enforce that student attendance does NOT display Present
-	unless confirmed by the Dean in the SBC system.
-	"""
-	if not event_date:
-		return {}
-
-	conn = get_db_connection()
-	cursor = conn.cursor(dictionary=True)
-	try:
-		date_str = str(event_date)
-		cursor.execute(
-			"""
-			SELECT 
-				s.student_id AS sbc_student_id,
-				s.student_number,
-				s.id_no,
-				s.rfid_uid,
-				s.full_name,
-				a.attendance_id,
-				a.date,
-				a.time_in_morning,
-				a.time_out_morning,
-				a.time_in_afternoon,
-				a.time_out_afternoon,
-				a.status,
-				a.morning_status,
-				a.afternoon_status,
-				a.remarks,
-				a.morning_remarks,
-				a.afternoon_remarks
-			FROM attendance a
-			JOIN student s ON (a.student_id = s.student_id OR a.ojt_id = s.student_id)
-			WHERE a.date = %s
-			""",
-			(date_str,)
-		)
-		rows = cursor.fetchall()
-		dean_map = {}
-		for r in rows:
-			for key in (r.get('student_number'), r.get('id_no'), r.get('rfid_uid'), f"cit-{r.get('sbc_student_id')}"):
-				if key:
-					dean_map[str(key).strip().lower()] = r
-		return dean_map
-	except Exception:
-		return {}
-	finally:
-		cursor.close()
-		conn.close()

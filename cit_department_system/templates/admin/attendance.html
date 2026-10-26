@@ -22,17 +22,26 @@ Attendance
 
     <div class="card shadow-sm mb-4">
         <div class="card-body">
-            <form method="get" action="/attendance" class="row g-3">
+            <form method="get" action="/attendance" class="row g-3" id="attendanceSemesterFilterForm">
                 <div class="col-md-4">
-                    <label class="form-label">Academic Year</label>
-                    <select name="academic_year" class="form-select">
+                    <label class="form-label" for="attendanceAcademicYearFilter">Academic Year</label>
+                    <select name="academic_year" class="form-select" id="attendanceAcademicYearFilter">
                         <option value="">-- All academic years --</option>
                         {% for ay in academic_years %}
                         <option value="{{ ay }}" {% if ay == selected_academic_year %}selected{% endif %}>{{ ay }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-8 d-flex align-items-end justify-content-md-end">
+                <div class="col-md-4">
+                    <label class="form-label" for="attendanceSemesterFilter">Semester</label>
+                    <select name="semester" class="form-select" id="attendanceSemesterFilter" {% if not selected_academic_year %}disabled{% endif %}>
+                        <option value="">-- All semesters --</option>
+                        {% for term in terms %}
+                        <option value="{{ term.semester }}" data-academic-year="{{ term.academic_year }}" {% if term.academic_year == selected_academic_year and term.semester == selected_semester %}selected{% endif %}>{{ term.semester }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end justify-content-md-end">
                     <button class="btn btn-primary">Filter</button>
                 </div>
             </form>
@@ -333,24 +342,32 @@ Attendance
     box-shadow: 0 1px 0 rgba(212, 175, 55, 0.18);
 }
 
-.attendance-status-present { color: #a5d6a7; font-weight: 600; }
-.attendance-status-late { color: #fcd34d; font-weight: 600; }
-.attendance-status-absent { color: #ff8a80; font-weight: 600; }
-.attendance-status-exempted { color: #93c5fd; font-weight: 600; }
-.attendance-status-pending-dean-review {
-    color: #fbbf24 !important;
-    font-weight: 600;
-    background: rgba(245, 158, 11, 0.15);
-    padding: 3px 8px;
-    border-radius: 6px;
-    border: 1px solid rgba(245, 158, 11, 0.35);
-    display: inline-block;
-    font-size: 0.82rem;
-}
+.attendance-status-present { color: #a5d6a7; }
+.attendance-status-late { color: #fcd34d; }
+.attendance-status-absent { color: #ff8a80; }
+.attendance-status-exempted { color: #93c5fd; }
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const academicYearFilter = document.getElementById('attendanceAcademicYearFilter');
+    const semesterFilter = document.getElementById('attendanceSemesterFilter');
+
+    function updateSemesterOptions(resetSelection) {
+        const academicYear = academicYearFilter.value;
+        if (resetSelection) semesterFilter.value = '';
+        semesterFilter.disabled = !academicYear;
+        Array.from(semesterFilter.options).forEach((option) => {
+            if (!option.dataset.academicYear) return;
+            option.hidden = !academicYear || option.dataset.academicYear !== academicYear;
+        });
+    }
+
+    updateSemesterOptions(false);
+    academicYearFilter.addEventListener('change', function () {
+        updateSemesterOptions(true);
+    });
+
     const attendanceModalElement = document.getElementById('attendanceEventModal');
     const attendanceModal = new bootstrap.Modal(attendanceModalElement);
     const attendanceRows = document.getElementById('attendanceEventRows');
@@ -401,7 +418,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 <td>${row.course || ''} - ${row.year_level || ''}</td>
                 <td>${row.login_time || '—'}</td>
                 <td>${row.logout_time || '—'}</td>
-                <td class="attendance-status-${(row.status || '').toLowerCase().replace(/[^a-z0-9]/g, '-')}">${row.status === 'Pending Dean Review' ? '<span class="attendance-status-pending-dean-review">⏳ Pending Dean Review</span>' : row.status}</td>
+                <td class="attendance-status-${row.status.toLowerCase()}">${row.status}</td>
                 <td>${row.source}</td>
                 <td>
                     <select class="form-select paper-attendance-select" data-student-id="${row.student_id}" ${row.status === 'Exempted' ? 'disabled' : ''}>
@@ -467,4 +484,3 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 
 {% endblock %}
-

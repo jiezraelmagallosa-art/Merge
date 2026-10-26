@@ -88,11 +88,7 @@ document.getElementById('adminLoginForm').addEventListener('submit', function(e)
         },
         body: JSON.stringify(data)
     })
-    .then(r => {
-        return r.json().catch(() => {
-            throw new Error('Server returned unexpected response (status ' + r.status + ')');
-        });
-    })
+    .then(r => r.json())
     .then(j => {
         if(j.success) {
             window.location = j.redirect || '/admin-dashboard';
@@ -105,11 +101,11 @@ document.getElementById('adminLoginForm').addEventListener('submit', function(e)
             form.parentElement.insertBefore(errorDiv, form);
         }
     })
-    .catch(err => {
+    .catch(() => {
         form.reset();
         const errorDiv = document.createElement('div');
         errorDiv.className = 'alert alert-danger';
-        errorDiv.textContent = (err && err.message) ? err.message : 'Network error. Please try again.';
+        errorDiv.textContent = 'Network error. Please try again.';
         form.parentElement.insertBefore(errorDiv, form);
     });
 });
